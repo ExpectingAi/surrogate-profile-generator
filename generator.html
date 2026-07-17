@@ -1,1 +1,1276 @@
-FILE_TOO_LARGE_PLACEHOLDER
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Surrogate Profile Generator | Expecting.Ai</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#1D4664;--purple:#9474CC;--teal:#73C0CA;--yellow:#FEC006;--ink:#243342;--soft:#5B6B7B;--paper:#FFFFFF;--mist:#F4F7FA;--line:#E2E9F0;--red:#D64545;--green:#1E7F4F}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Montserrat',system-ui,sans-serif;color:var(--ink);background:var(--mist);min-height:100vh}
+
+/* Top bar */
+.topbar{background:var(--navy);color:#fff;padding:14px 32px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
+.topbar .logo{font-weight:700;font-size:16px}.topbar .logo span{color:var(--teal)}
+.topbar .sep{width:1px;height:20px;background:rgba(255,255,255,.25)}
+.topbar .title{font-size:13px;letter-spacing:.08em;text-transform:uppercase;opacity:.85}
+
+/* Stepper */
+.stepper{display:flex;justify-content:center;gap:0;padding:24px 32px 8px;max-width:700px;margin:0 auto}
+.step{flex:1;text-align:center;position:relative;padding-bottom:18px}
+.step:not(:last-child):after{content:"";position:absolute;top:13px;left:55%;right:-45%;height:2px;background:var(--line)}
+.step.done:not(:last-child):after{background:var(--teal)}
+.step .dot{width:28px;height:28px;border-radius:50%;background:var(--line);color:var(--soft);display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;position:relative;z-index:1;transition:.2s}
+.step.active .dot{background:var(--navy);color:#fff}
+.step.done .dot{background:var(--teal);color:#fff}
+.step .label{display:block;font-size:10.5px;margin-top:6px;color:var(--soft);text-transform:uppercase;letter-spacing:.06em}
+.step.active .label{color:var(--navy);font-weight:600}
+
+/* Container */
+.container{max-width:860px;margin:0 auto;padding:8px 24px 60px}
+.panel{background:var(--paper);border-radius:12px;padding:32px;margin-top:20px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.panel h2{font-size:18px;color:var(--navy);margin-bottom:6px}
+.panel .sub{font-size:13px;color:var(--soft);margin-bottom:24px}
+
+/* Drop zones */
+.dropzone{border:2px dashed var(--line);border-radius:10px;padding:48px 24px;text-align:center;cursor:pointer;transition:.2s}
+.dropzone:hover,.dropzone.over{border-color:var(--teal);background:#F0FAFB}
+.dropzone .icon{font-size:36px;margin-bottom:10px}
+.dropzone .main{font-size:14px;font-weight:600;color:var(--navy)}
+.dropzone .hint{font-size:12px;color:var(--soft);margin-top:4px}
+.file-tag{display:inline-flex;align-items:center;gap:8px;background:var(--mist);border:1px solid var(--line);border-radius:8px;padding:8px 14px;margin-top:14px;font-size:13px;font-weight:600;color:var(--navy)}
+.file-tag .x{cursor:pointer;color:var(--soft);font-size:16px}
+
+/* Photo grid */
+.photo-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.photo-slot{aspect-ratio:3/4;border:2px dashed var(--line);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;overflow:hidden;transition:.2s;background:var(--mist)}
+.photo-slot:hover{border-color:var(--teal)}
+.photo-slot.filled{border:none}
+.photo-slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:10px}
+.photo-slot .overlay{position:absolute;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;border-radius:10px}
+.photo-slot.filled:hover .overlay{display:flex}
+.photo-slot .overlay button{background:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;cursor:pointer;color:var(--red)}
+.photo-slot .plus{font-size:24px;color:var(--soft)}
+.photo-slot .plabel{font-size:10px;color:var(--soft);margin-top:4px;text-transform:uppercase;letter-spacing:.06em}
+.photo-labels{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:6px}
+.photo-labels span{font-size:10px;text-align:center;color:var(--soft)}
+
+/* Form fields */
+.field-group{margin-bottom:20px}
+.field-group h3{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--purple);margin-bottom:12px;padding-bottom:6px;border-bottom:2px solid var(--mist)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px}
+.field-row.full{grid-template-columns:1fr}
+.field{margin-bottom:10px}
+.field label{display:block;font-size:11px;color:var(--soft);margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-family:inherit;font-size:13px;color:var(--ink);background:var(--paper)}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(115,192,202,.15)}
+.field textarea{resize:vertical;min-height:60px}
+.field .auto{color:var(--green);font-size:10px;margin-top:2px}
+
+/* Pregnancy table editor */
+.preg-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+.preg-table th{background:var(--mist);padding:7px 8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--navy);border-bottom:2px solid var(--teal);white-space:nowrap}
+.preg-table td{padding:4px 6px;border-bottom:1px solid var(--line)}
+.preg-table input{width:100%;border:1px solid transparent;border-radius:4px;padding:4px 6px;font-size:12px;font-family:inherit;background:transparent}
+.preg-table input:focus{border-color:var(--teal);background:#fff;outline:none}
+
+/* Buttons */
+.actions{display:flex;gap:12px;margin-top:28px;justify-content:flex-end}
+.btn{padding:10px 24px;border-radius:8px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:.15s}
+.btn-primary{background:var(--navy);color:#fff}.btn-primary:hover{background:#245678}
+.btn-secondary{background:var(--mist);color:var(--navy);border:1px solid var(--line)}.btn-secondary:hover{background:#E8EFF5}
+.btn-teal{background:var(--teal);color:#fff}.btn-teal:hover{background:#5DADB6}
+.btn-yellow{background:var(--yellow);color:var(--navy)}.btn-yellow:hover{background:#E5AD00}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* Status / errors */
+.status{padding:12px 16px;border-radius:8px;font-size:13px;margin-top:14px;display:none}
+.status.ok{display:block;background:#E8F7EE;color:var(--green);border:1px solid #C1E8D0}
+.status.err{display:block;background:#FDECEC;color:var(--red);border:1px solid #F5C6C6}
+
+/* Hero config */
+.hero-config{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px}
+.hero-config .field-row{grid-template-columns:1fr}
+
+/* Hide all screens except active */
+.screen{display:none}.screen.active{display:block}
+
+@media(max-width:640px){
+  .photo-grid{grid-template-columns:repeat(2,1fr)}
+  .photo-labels{grid-template-columns:repeat(2,1fr)}
+  .field-row{grid-template-columns:1fr}
+  .hero-config{grid-template-columns:1fr}
+  .stepper{gap:0;padding:16px 12px 4px}
+  .container{padding:8px 12px 40px}
+  .panel{padding:20px 16px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo"><svg id="Logo_line" data-name="Logo line" xmlns="http://www.w3.org/2000/svg" width="160" height="27" viewBox="0 0 325.939 55.539"> <path id="Path_83" data-name="Path 83" d="M177.965,38.815a13.8,13.8,0,0,0-7.424-1.921,15.142,15.142,0,0,0-7.75,1.954,13.97,13.97,0,0,0-5.275,5.438,16.2,16.2,0,0,0-1.921,8.011,15.468,15.468,0,0,0,2.019,7.945,14.36,14.36,0,0,0,5.6,5.438,16.965,16.965,0,0,0,13.514,1.009,15.3,15.3,0,0,0,4.689-2.442,1.954,1.954,0,0,0,.879-1.726,2.638,2.638,0,0,0-1.009-1.824,2.442,2.442,0,0,0-1.693-.586,3.159,3.159,0,0,0-1.791.651,10.909,10.909,0,0,1-2.9,1.465,10.485,10.485,0,0,1-3.517.651,11.137,11.137,0,0,1-5.6-1.4,10.062,10.062,0,0,1-5.047-7.262h21.036a2.54,2.54,0,0,0,1.824-.684,2.312,2.312,0,0,0,.716-1.758,17.421,17.421,0,0,0-1.628-7.717,12.472,12.472,0,0,0-4.722-5.275m-12.83,4.233a10.1,10.1,0,0,1,5.406-1.4,8.076,8.076,0,0,1,7.685,4.722,11.2,11.2,0,0,1,.977,3.419H160.772a11.43,11.43,0,0,1,.944-2.963,8.922,8.922,0,0,1,3.419-3.81" transform="translate(-104.555 -24.878)" fill="#ffffff"/> <path id="Path_84" data-name="Path 84" d="M272.011,53.119l8.336-10.941a3.452,3.452,0,0,0,.814-2.051,2.638,2.638,0,0,0-.586-1.791,2.214,2.214,0,0,0-1.824-.749,3.029,3.029,0,0,0-1.107.2,2.312,2.312,0,0,0-.944.749L268.56,49.374l-9.085-10.844a2.573,2.573,0,0,0-2.117-.944,2.247,2.247,0,0,0-1.824.716,2.41,2.41,0,0,0-.554,1.758,3.256,3.256,0,0,0,.782,1.921l9.118,10.811-8.564,10.746a3.257,3.257,0,0,0-.781,1.986,2.41,2.41,0,0,0,.651,1.693,2.247,2.247,0,0,0,1.758.684,2.638,2.638,0,0,0,1.986-.879l8.369-10.55,8.792,10.55a2.084,2.084,0,0,0,.944.716,3.289,3.289,0,0,0,1.042.163,2.507,2.507,0,0,0,1.791-.651,2.28,2.28,0,0,0,.716-1.628,2.963,2.963,0,0,0-.814-1.954Z" transform="translate(-171.574 -25.342)" fill="#ffffff"/> <path id="Path_85" data-name="Path 85" d="M379.022,38.913a15.989,15.989,0,0,0-15.565,0,14.817,14.817,0,0,0-5.438,5.5A15.989,15.989,0,0,0,356,52.3V77.565a2.866,2.866,0,0,0,4.885,2.019,2.8,2.8,0,0,0,.781-2.019V62.619a14.23,14.23,0,0,0,4.689,3.68,14,14,0,0,0,13.253-.651,14.36,14.36,0,0,0,5.047-5.5,16.314,16.314,0,0,0,1.856-7.848,15.4,15.4,0,0,0-2.019-7.88,15.044,15.044,0,0,0-5.471-5.5m.749,18.659a9.867,9.867,0,0,1-3.517,3.712,10,10,0,0,1-10.062,0,9.574,9.574,0,0,1-3.517-3.712,11.727,11.727,0,0,1,0-10.616,9.8,9.8,0,0,1,13.579-3.712,9.866,9.866,0,0,1,3.517,3.712,10.876,10.876,0,0,1,1.3,5.34,10.746,10.746,0,0,1-1.3,5.275" transform="translate(-239.703 -24.878)" fill="#ffffff"/> <path id="Path_86" data-name="Path 86" d="M491.065,38.815a13.794,13.794,0,0,0-7.424-1.921,15.142,15.142,0,0,0-7.75,1.954,13.969,13.969,0,0,0-5.275,5.438,16.2,16.2,0,0,0-1.921,8.011,15.468,15.468,0,0,0,2.019,7.945,14.36,14.36,0,0,0,5.6,5.438,16.966,16.966,0,0,0,13.514,1.009,15.305,15.305,0,0,0,4.689-2.442,1.954,1.954,0,0,0,.879-1.726,2.638,2.638,0,0,0-1.009-1.824,2.442,2.442,0,0,0-1.693-.586,3.159,3.159,0,0,0-1.791.651,10.909,10.909,0,0,1-2.9,1.465,10.486,10.486,0,0,1-3.517.651,11.137,11.137,0,0,1-5.6-1.4,10.062,10.062,0,0,1-5.047-7.262h21.068a2.54,2.54,0,0,0,1.823-.684,2.312,2.312,0,0,0,.716-1.758,17.421,17.421,0,0,0-1.628-7.718,12.472,12.472,0,0,0-4.722-5.275m-12.863,4.266a10.1,10.1,0,0,1,5.406-1.4,8.076,8.076,0,0,1,7.685,4.722,11.2,11.2,0,0,1,.977,3.419H473.9a11.425,11.425,0,0,1,.944-2.963,8.923,8.923,0,0,1,3.387-3.777" transform="translate(-315.699 -24.878)" fill="#ffffff"/> <path id="Path_87" data-name="Path 87" d="M595.1,38.131a14.166,14.166,0,0,0-5.992-1.237,15.142,15.142,0,0,0-7.75,1.954,14.133,14.133,0,0,0-5.308,5.471,16.151,16.151,0,0,0-1.954,7.978,15.6,15.6,0,0,0,1.954,7.848,14.588,14.588,0,0,0,5.438,5.471,15.337,15.337,0,0,0,7.88,2.019,14.027,14.027,0,0,0,9.964-3.712,2.051,2.051,0,0,0,.651-1.758A2.67,2.67,0,0,0,598.94,60.4a2.182,2.182,0,0,0-1.661-.521,3.354,3.354,0,0,0-1.824.814,8.14,8.14,0,0,1-2.67,1.465,11.169,11.169,0,0,1-3.419.456,9.671,9.671,0,0,1-5.145-1.368,9.508,9.508,0,0,1-3.452-3.68,11.106,11.106,0,0,1-1.237-5.308,11.659,11.659,0,0,1,1.2-5.471,9.021,9.021,0,0,1,3.419-3.615,9.476,9.476,0,0,1,4.982-1.3,8.922,8.922,0,0,1,6.741,2.9,3.354,3.354,0,0,0,1.726.977,2.117,2.117,0,0,0,1.726-.358,2.9,2.9,0,0,0,1.2-1.661,1.987,1.987,0,0,0-.554-1.824,14.391,14.391,0,0,0-4.884-3.745" transform="translate(-386.778 -24.878)" fill="#ffffff"/> <path id="Path_88" data-name="Path 88" d="M687.467,42.387h-1.889a3.712,3.712,0,0,1-3-1.5,5.666,5.666,0,0,1-1.2-3.712V23.5H686.1a2.67,2.67,0,0,0,1.889-.651,2.182,2.182,0,0,0,.716-1.661,2.312,2.312,0,0,0-.716-1.758,2.67,2.67,0,0,0-1.889-.651h-4.722V10.768a2.768,2.768,0,1,0-5.536,0v7.978H673.3a2.67,2.67,0,0,0-1.889.651,2.312,2.312,0,0,0-.716,1.758,2.182,2.182,0,0,0,.716,1.661,2.67,2.67,0,0,0,1.889.651h2.54V37.144a11.657,11.657,0,0,0,1.27,5.471,9.9,9.9,0,0,0,3.484,3.842,9.085,9.085,0,0,0,4.982,1.4h1.009a3.517,3.517,0,0,0,2.345-.782,2.507,2.507,0,0,0,.912-1.986,2.9,2.9,0,0,0-.684-1.986,2.182,2.182,0,0,0-1.693-.782" transform="translate(-451.924 -5.395)" fill="#ffffff"/> <path id="Path_89" data-name="Path 89" d="M750.547,0a3.517,3.517,0,0,0-2.573,1.075A3.517,3.517,0,0,0,746.9,3.647a3.517,3.517,0,0,0,1.075,2.572,3.615,3.615,0,0,0,5.145,0,3.517,3.517,0,0,0,1.075-2.572,3.517,3.517,0,0,0-1.075-2.573A3.517,3.517,0,0,0,750.547,0" transform="translate(-503.314 0.001)" fill="#ffffff"/> <path id="Path_90" data-name="Path 90" d="M752.228,37.589a2.8,2.8,0,0,0-2.019.782,2.7,2.7,0,0,0-.814,2.051v24.65a2.866,2.866,0,0,0,4.885,2.019,2.8,2.8,0,0,0,.781-2.019V40.422a2.67,2.67,0,0,0-2.833-2.833" transform="translate(-504.995 -25.345)" fill="#ffffff"/> <path id="Path_91" data-name="Path 91" d="M818.21,38.424a14.132,14.132,0,0,0-6.838-1.628,13.514,13.514,0,0,0-6.578,1.6,12.667,12.667,0,0,0-2.833,2.084v-.586a2.866,2.866,0,0,0-4.852-2.051,2.7,2.7,0,0,0-.814,2.051V64.6a2.866,2.866,0,0,0,4.884,2.019,2.8,2.8,0,0,0,.782-2.019V48.974a6.154,6.154,0,0,1,1.107-3.647,7.879,7.879,0,0,1,3-2.507,9.281,9.281,0,0,1,4.2-.944,10.094,10.094,0,0,1,4.526.977,7.326,7.326,0,0,1,3.126,2.963,10.029,10.029,0,0,1,1.172,5.145V64.572a2.833,2.833,0,0,0,5.666,0V50.96A15.734,15.734,0,0,0,823,43.21a11.787,11.787,0,0,0-4.754-4.787" transform="translate(-536.623 -24.812)" fill="#ffffff"/> <path id="Path_92" data-name="Path 92" d="M934.551,44.332a14.262,14.262,0,0,0-5.406-5.406,16.835,16.835,0,0,0-15.793,0,14.263,14.263,0,0,0-5.406,5.438,15.983,15.983,0,0,0-1.954,8.011,16.77,16.77,0,0,0,1.823,7.945,13.481,13.481,0,0,0,12.342,7.392,11.853,11.853,0,0,0,6.773-1.954,13.219,13.219,0,0,0,4.168-4.526v2.735a12.691,12.691,0,0,1-1.335,6.089,9.151,9.151,0,0,1-3.582,3.712,9.769,9.769,0,0,1-4.885,1.3,12.113,12.113,0,0,1-5.145-1.042,10.225,10.225,0,0,1-3.777-2.931,2.833,2.833,0,0,0-1.758-1.107,2.67,2.67,0,0,0-2.084.456,2.474,2.474,0,0,0-1.074,1.6A2.344,2.344,0,0,0,907.979,74a15.5,15.5,0,0,0,5.829,4.559,17.681,17.681,0,0,0,7.359,1.563A15.11,15.11,0,0,0,929.178,78a14.783,14.783,0,0,0,5.406-5.666,16.38,16.38,0,0,0,1.954-7.945V52.343a16.1,16.1,0,0,0-1.954-8.011M926.41,61.363a10.42,10.42,0,0,1-10.192,0,9.508,9.508,0,0,1-3.484-3.647,11.005,11.005,0,0,1-1.27-5.373,11.169,11.169,0,0,1,1.27-5.406,9.443,9.443,0,0,1,3.484-3.68,10.42,10.42,0,0,1,10.192,0,9.248,9.248,0,0,1,3.452,3.68,11.364,11.364,0,0,1,1.237,5.406,11.2,11.2,0,0,1-1.237,5.373,9.313,9.313,0,0,1-3.452,3.647" transform="translate(-610.599 -24.924)" fill="#ffffff"/> <path id="Path_93" data-name="Path 93" d="M25.185,46.567H2.717a3.517,3.517,0,1,1,0-7H25.185a3.517,3.517,0,0,1,0,7" transform="translate(1.138 -26.671)" fill="#ffffff"/> <path id="Path_94" data-name="Path 94" d="M104.434,43.117a3.517,3.517,0,1,1-3.517-3.517,3.517,3.517,0,0,1,3.517,3.517" transform="translate(-65.313 -26.705)" fill="#fec006"/> <path id="Path_95" data-name="Path 95" d="M25.185,116.267H2.717a3.517,3.517,0,1,1,0-7H25.185a3.517,3.517,0,0,1,0,7" transform="translate(1.138 -73.674)" fill="#ffffff"/> <path id="Path_96" data-name="Path 96" d="M104.434,112.884a3.517,3.517,0,1,1-3.517-3.484,3.517,3.517,0,0,1,3.517,3.484" transform="translate(-65.313 -73.776)" fill="#9474cc"/> <path id="Path_97" data-name="Path 97" d="M10.046,81.467H2.817a3.517,3.517,0,1,1,0-7h7.229a3.517,3.517,0,1,1,0,7" transform="translate(1.071 -50.206)" fill="#73c0ca"/> <path id="Path_98" data-name="Path 98" d="M57.334,78.184A3.517,3.517,0,1,1,53.849,74.7a3.517,3.517,0,0,1,3.484,3.484" transform="translate(-33.55 -50.375)" fill="#73c0ca"/> </svg></div>
+  <div class="sep"></div>
+  <div class="title">Surrogate Profile Generator</div>
+</div>
+
+<div class="stepper">
+  <div class="step active" id="s1"><span class="dot">1</span><span class="label">Upload Data</span></div>
+  <div class="step" id="s2"><span class="dot">2</span><span class="label">Photos</span></div>
+  <div class="step" id="s3"><span class="dot">3</span><span class="label">Review</span></div>
+  <div class="step" id="s4"><span class="dot">4</span><span class="label">Generate</span></div>
+</div>
+
+<div class="container">
+
+<!-- SCREEN 1: UPLOAD -->
+<div class="screen active" id="screen1">
+  <div class="panel">
+    <h2>Upload Questionnaire Export</h2>
+    <p class="sub">Drop the Zoho CRM CSV or XLSX export of the Surrogate Prospects Initial Screening Questionnaire.</p>
+    <div class="dropzone" id="dataDropzone" onclick="document.getElementById('fileInput').click()">
+      <div class="icon">📄</div>
+      <div class="main">Drop CSV or XLSX file here</div>
+      <div class="hint">or click to browse</div>
+    </div>
+    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display:none">
+    <div id="fileTag" style="display:none"></div>
+    <div id="parseStatus" class="status"></div>
+    <div class="actions">
+      <button class="btn btn-primary" id="nextToPhotos" disabled onclick="goTo(2)">Continue to Photos →</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 2: PHOTOS -->
+<div class="screen" id="screen2">
+  <div class="panel">
+    <h2>Upload Photos</h2>
+    <p class="sub">Add up to 8 photos. The first photo will be used as the hero image. Drag to reorder, click to replace.</p>
+    <div class="photo-grid" id="photoGrid"></div>
+    <div class="photo-labels" id="photoLabels"></div>
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="goTo(1)">← Back</button>
+      <button class="btn btn-primary" onclick="goTo(3)">Continue to Review →</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 3: REVIEW -->
+<div class="screen" id="screen3">
+  <div class="panel">
+    <h2>Review &amp; Edit Profile Data</h2>
+    <p class="sub">All fields were auto-parsed from the questionnaire. Edit anything before generating.</p>
+    <div id="reviewForm"></div>
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="goTo(2)">← Back</button>
+      <button class="btn btn-primary" onclick="generateProfile()">Generate Profile →</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCREEN 4: GENERATE -->
+<div class="screen" id="screen4">
+  <div class="panel" style="text-align:center">
+    <h2>Profile Ready</h2>
+    <p class="sub">Your branded surrogate profile has been generated.</p>
+    <div style="margin:28px 0;display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
+      <button class="btn btn-teal" onclick="downloadProfile()">⬇ Download HTML</button>
+      <button class="btn btn-yellow" onclick="printProfile()">🖨 Print / Save as PDF</button>
+    </div>
+    <div style="border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:20px;text-align:left">
+      <iframe id="previewFrame" style="width:100%;height:700px;border:none"></iframe>
+    </div>
+    <div class="actions" style="margin-top:20px">
+      <button class="btn btn-secondary" onclick="goTo(3)">← Edit Data</button>
+      <button class="btn btn-primary" onclick="goTo(1)">Start New Profile</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let parsedData = {};
+let pregnancies = [];
+let photos = [null,null,null,null,null,null,null,null];
+const PHOTO_LABELS = ['Hero (couple/portrait)','With partner','At clinic/transfer','Delivery day','Couple/outdoor','With children','At work','Car selfie/casual'];
+let generatedHTML = '';
+
+// ============================================================
+// STEPPER
+// ============================================================
+function goTo(n) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen' + n).classList.add('active');
+  document.querySelectorAll('.step').forEach((s, i) => {
+    s.classList.remove('active','done');
+    if (i + 1 === n) s.classList.add('active');
+    else if (i + 1 < n) s.classList.add('done');
+  });
+  if (n === 3) buildReviewForm();
+  window.scrollTo(0, 0);
+}
+
+// ============================================================
+// FILE PARSING
+// ============================================================
+const MAIN_COLS = {
+  id: 'Expecting ID',
+  dob: 'Date of Birth:',
+  country: 'Country',
+  state: 'State',
+  city: 'City',
+  zip: 'Zip Code',
+  address: 'Full Address',
+  prevSurrogate: 'Have you ever been a surrogate in the past?',
+  usCitizen: 'Are you a US Citizen / Green Card holder?',
+  covid: 'Have you received the Covid-19 vaccine or willing to be vaccinated?',
+  baseFee: 'What is your expected base fee? ($)',
+  height: 'Height',
+  weight: 'Weight',
+  bmi: 'BMI',
+  ethnicity: 'Ethnicity',
+  religion: 'Religion',
+  bloodType: 'Blood type',
+  pregnant: 'Are you currently pregnant?',
+  breastfeeding: 'Are you currently breastfeeding?',
+  whySurrogacy: 'Please let us know how long you have been considering becoming a surrogate and why:',
+  willingIPs: 'Willing to work with the following intended parents:',
+  willingCarry: 'Willing to carry:',
+  willingWork: 'Willing to work with:',
+  startPlan: 'When do you plan to start your journey?',
+  importantFactor: 'What is the most important factor for you in a surrogacy agency?',
+  employer: 'Employer',
+  workType: 'What type of work do you do?',
+  workHours: 'How many hours per week do you work?',
+  workplaceSupportive: 'Will your workplace be supportive of your pregnancy?',
+  financiallyStable: 'Would you describe yourself as financially stable?',
+  education: 'What is your educational background?',
+  criminal: 'Have you ever been convicted of a misdemeanour or a felony?',
+  relStatus: 'What is your relationship status?',
+  partnerName: "What is your partner's name?",
+  partnerDOB: 'Partners DOB',
+  partnerEmployer: "Partner's Employer",
+  partnerWork: 'What type of work?',
+  partnerHours: 'How many hours per week?',
+  partnerEdu: "What is your partner's educational background?",
+  relLength: 'How long have you been in your relationship with your partner?',
+  partnerHealth: 'Is your partner in good health?',
+  partnerCriminal: 'Has your partner ever been convicted of a misdemeanour or felony?',
+  household: 'Who lives in your household with you?',
+  supportSystem: 'Who will be part of your support system during your surrogacy journey?',
+  supportNames: 'Name & relationship to you?',
+  smokeVape: 'Does anyone in your household smoke or vape?',
+  tribal: 'Are you or any member of your family registered with a tribe?',
+  tellChildren: 'What would you tell your children about the pregnancy?',
+  lastPregnancy: 'When was your last pregnancy?',
+  descPregnancies: 'Describe your pregnancy or pregnancies?',
+  troubleGettingPreg: 'Did you have any trouble getting pregnant?',
+  familyFertility: 'Do you have a family history of fertility problems?',
+  morningSickness: 'Did you have morning sickness during pregnancy?',
+  timesPregnant: 'How many times have you been pregnant?',
+  numChildren: 'How many children do you have?',
+  vaginalDel: 'How many vaginal delivery?',
+  miscarriages: 'How many miscarriages/still births?',
+  abortions: 'How many abortions?',
+  csections: 'How many caesarean delivery?',
+  premature: 'How many premature births?',
+  preEclampsia: 'Have you diagnosed with Pre-Eclampia in a singleton pregnancy in the past?',
+  gestDiabetes: 'Have you diagnosed with gestational diabetes in the past?',
+  hypertension: 'Have you diagnosed with pregnancy induced hypertension in the past?',
+  incompCervix: 'Have you diagnosed with an incompetent cervix in the past?',
+  ppd: 'Have you diagnosed with postpartum depression in the past?',
+  weightLossSurgery: 'Have you weight loss surgery in the past?',
+  adoption: 'Have you gave up a child for adoption?',
+  recDrugs: 'Have you used recreational drugs?',
+  legalObligations: 'Do you or your partner currently have outstanding legal obligations?',
+  medCondition: 'Describe your medical condition',
+  drugAlcoholHistory: 'History of drug or alcohol abuse, or addiction',
+  vitamins: 'What vitamins and nutritional supplements are you currently taking?',
+  medications: 'List any medications you have taken within the past 12 months:',
+  anxietyMeds: 'Have you taken any anxiety or depression medications in the last 12 months?',
+  vaccinesUpToDate: 'Are your vaccines up to date?',
+  birthControl: 'What type of birth control are you currently using?',
+  doctorFreq: 'How often do you go to the doctor?',
+  periodLength: 'How long do your periods last?',
+  lastPeriod: 'First day of the last period?',
+  regularCycle: 'Do you have a regular menstrual cycle?',
+  healthConcerns: 'Do you have any health concerns?',
+  allergies: 'Are you allergic to anything?',
+  allergyDetail: 'Please explain.9',
+  hospitalized: 'Have you ever been hospitalised?',
+  therapy: 'Have you ever been in therapy or counselling?',
+  lastPap: 'When was your last pap smear?',
+  papResults: 'What were your results?',
+  eatHomeOut: 'Do you typically eat at home or out?',
+  eatOutFreq: 'How often do you eat out?',
+  diet: 'Which of the following diets do you follow, if any?',
+  exercise: 'Do you exercise? Please describe:',
+  exercisePreg: 'Do you exercise when pregnant?',
+  personality: 'How would you describe your personality?',
+  goals: 'What are your goals & ambitions in life?',
+  typicalDay: 'Tell us about a typical day for you:',
+  familyActivities: 'What kind of activities do you enjoy doing with your family?',
+  relax: 'What do you do to pamper yourself and relax?',
+  hobbies: 'What are your hobbies & talents?',
+  favColorCandy: 'What is your favourite colour, candy, smell and flower?',
+  favVacation: 'What is your favourite vacation/getaway or place to go?',
+  favBook: 'What is your favourite book?',
+  favMovie: 'What is your favorite movie?',
+  favSport: 'What is your favorite sport?',
+  music: 'What music do you like to listen to?',
+  favFood: 'What is your favorite type of food?',
+  homeDesc: 'Describe the home you live in and neighborhood:',
+  anythingElse: 'Is there anything you would like to add about yourself for the Intended Parents to know?',
+  insurance: 'Do you currently have medical insurance?',
+  insuranceCompany: 'What is the name of your insurance company?',
+  willingInsurance: 'If requested and no cost  for you, would you be willing to apply for health insurance?',
+  govAssistance: 'Do you receive government assistance (Cash Aide, AFDC et)?',
+  reliableTransport: 'Do you have reliable transportation?',
+  driversLicense: "Do you have a driver's license?",
+  hasCar: 'Do you have a car?',
+  carInsurance: 'Do you have car insurance?',
+  travel100: 'Will you travel more than 100 miles for a doctor\'s appointment?',
+  travelState: 'Will you agree to travel out of your state for medical screening and embryo transfer?',
+  travelIntl: 'Have you traveled anywhere outside of the US in the past 6 months?',
+  twoEmbryos: 'Are you willing to have two embryos transferred?',
+  doctorDecides: 'Are you willing to allow the doctor to decide the best number of embryos to transfer to achieve a single pregnancy?',
+  injections: 'Are you willing to undergo subcutaneous and intramuscular injections?',
+  drugScreening: 'Are you able to pass random drug screenings?',
+  terminateMedical: 'Would you be willing to terminate the pregnancy if medically advised?',
+  terminateFatal: 'If the fetus is diagnosed with a fatal or debilitating disease, would you be willing to terminate the pregnancy if requested by the Doctor or Intended Parents?',
+  terminateT21: 'If the fetus were diagnosed with Down Syndrome (trisomy 21), would you be willing to terminate the pregnancy if requested by the Intended Parents?',
+  reduction: 'If you were to become pregnant with triplets (3) or more, would you be willing to reduce the number of embryos within the first trimester if requested by the Doctor or Intended Parents?',
+  bgCheck: 'Do you (and your partner) agree to go through a background check as a part of the screening process?',
+  psychScreen: 'Do you agree to complete the required physiological screening?',
+  ivfMeds: 'You will be required to take injectable medication during the IVF cycle. Do you agree  to take all medications prescribed by the doctor in order to prepare your body for the IVF/ embryo transfer?',
+  legalDocs: 'Do you and your spouse/ partner agree to sign all legal documents required in a timely manner?',
+  willingMeet: 'Willing to meet recipient couple:',
+  willingPump: 'Willing to pump breast milk:',
+  messageToIPs: 'What message would you like to send to the intended parents?',
+  willingShareOnline: 'Are you willing to share photos and videos of your surrogacy journey online, including on social networks and other platforms?',
+  abstain: 'I agree to abstain from sexual activity while undergoing hormonial treatments embryo transfer:'
+};
+
+// Pregnancy subform: column index offsets from col 71
+const PREG_FIELDS = ['childName','dob','gestation','weight','gender','singletonTwins','delivery','gestDiabetes','complication','miscarriage','medication','obgyn','obgynAddress','hospital','hospitalAddress'];
+const PREG_COL_START = 71;
+
+function parseFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      let rows;
+      if (ext === 'csv') {
+        rows = csvToRows(e.target.result);
+      } else {
+        const wb = XLSX.read(e.target.result, {type:'binary'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      }
+      processRows(rows, file.name);
+    } catch(err) {
+      showStatus('err', 'Failed to parse file: ' + err.message);
+    }
+  };
+  if (ext === 'csv') reader.readAsText(file);
+  else reader.readAsBinaryString(file);
+}
+
+function csvToRows(text) {
+  const rows = []; let row = []; let cell = ''; let inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"' && text[i+1] === '"') { cell += '"'; i++; }
+      else if (c === '"') inQ = false;
+      else cell += c;
+    } else {
+      if (c === '"') inQ = true;
+      else if (c === ',') { row.push(cell); cell = ''; }
+      else if (c === '\n' || (c === '\r' && text[i+1] === '\n')) {
+        row.push(cell); cell = ''; rows.push(row); row = [];
+        if (c === '\r') i++;
+      } else cell += c;
+    }
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows;
+}
+
+function processRows(rows, fileName) {
+  if (rows.length < 2) { showStatus('err','File appears empty'); return; }
+  const headers = rows[0].map(h => String(h).trim());
+
+  // Find the main data row (first row with an Expecting ID)
+  const idCol = headers.indexOf('Expecting ID');
+  if (idCol < 0) { showStatus('err','Could not find "Expecting ID" column. Is this the right Zoho export?'); return; }
+
+  let mainRowIdx = -1;
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][idCol] && String(rows[i][idCol]).trim()) {
+      mainRowIdx = i; break;
+    }
+  }
+  if (mainRowIdx < 0) { showStatus('err','No surrogate record found in the file'); return; }
+
+  // Extract main data
+  parsedData = {};
+  for (const [key, colName] of Object.entries(MAIN_COLS)) {
+    const ci = headers.indexOf(colName);
+    parsedData[key] = ci >= 0 ? String(rows[mainRowIdx][ci] || '').trim() : '';
+  }
+
+  // Extract pregnancy subform
+  pregnancies = [];
+  // Main row has the first pregnancy
+  let p = {};
+  for (let f = 0; f < PREG_FIELDS.length; f++) {
+    const ci = PREG_COL_START + f;
+    p[PREG_FIELDS[f]] = ci < rows[mainRowIdx].length ? String(rows[mainRowIdx][ci] || '').trim() : '';
+  }
+  if (p.childName || p.dob) pregnancies.push(p);
+
+  // Subsequent rows (subform continuation)
+  for (let i = mainRowIdx + 1; i < rows.length; i++) {
+    if (rows[i][idCol] && String(rows[i][idCol]).trim()) break; // next surrogate
+    let ps = {};
+    let hasData = false;
+    for (let f = 0; f < PREG_FIELDS.length; f++) {
+      const ci = PREG_COL_START + f;
+      const v = ci < rows[i].length ? String(rows[i][ci] || '').trim() : '';
+      ps[PREG_FIELDS[f]] = v;
+      if (v) hasData = true;
+    }
+    if (hasData) pregnancies.push(ps);
+  }
+
+  // Clean up common formatting issues
+  cleanData();
+
+  showStatus('ok', `Parsed <b>${parsedData.id || 'Unknown ID'}</b> from ${fileName} with <b>${pregnancies.length}</b> pregnancy entries.`);
+  document.getElementById('nextToPhotos').disabled = false;
+
+  // File tag
+  const ft = document.getElementById('fileTag');
+  ft.style.display = 'inline-flex';
+  ft.innerHTML = `<span class="file-tag">📄 ${fileName} <span class="x" onclick="clearFile()">✕</span></span>`;
+}
+
+function cleanData() {
+  // Education mapping
+  const eduMap = {'1':'Less than High School','2':'High School','3':'Some College','4':'Associate Degree','5':'Trade/Vocational','6':"Bachelor's Degree",'7':"Master's Degree",'8':'Doctorate'};
+  if (eduMap[parsedData.education]) parsedData.education = eduMap[parsedData.education];
+  if (eduMap[parsedData.partnerEdu]) parsedData.partnerEdu = eduMap[parsedData.partnerEdu];
+
+  // Relationship status mapping
+  const relMap = {'1':'Single','2':'Married','3':'Domestic Partnership','4':'Divorced','5':'Widowed','6':'Separated'};
+  if (relMap[parsedData.relStatus]) parsedData.relStatus = relMap[parsedData.relStatus];
+
+  // Work hours sanity
+  const hrs = parseFloat(parsedData.workHours);
+  if (hrs > 100) parsedData.workHours = '40';
+
+  // BMI to 1 decimal
+  const bmi = parseFloat(parsedData.bmi);
+  if (!isNaN(bmi)) parsedData.bmi = bmi.toFixed(1);
+
+  // Format fee
+  const fee = parseFloat(String(parsedData.baseFee).replace(/[^0-9.]/g,''));
+  if (!isNaN(fee)) parsedData.baseFee = fee >= 1000 ? fee.toLocaleString('en-US') : parsedData.baseFee;
+}
+
+function clearFile() {
+  parsedData = {}; pregnancies = [];
+  document.getElementById('fileTag').style.display = 'none';
+  document.getElementById('parseStatus').className = 'status';
+  document.getElementById('parseStatus').style.display = 'none';
+  document.getElementById('nextToPhotos').disabled = true;
+}
+
+function showStatus(type, msg) {
+  const el = document.getElementById('parseStatus');
+  el.className = 'status ' + type;
+  el.innerHTML = msg;
+}
+
+// ============================================================
+// FILE UPLOAD EVENTS
+// ============================================================
+const dz = document.getElementById('dataDropzone');
+const fi = document.getElementById('fileInput');
+['dragover','dragenter'].forEach(e => dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.add('over'); }));
+['dragleave','drop'].forEach(e => dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.remove('over'); }));
+dz.addEventListener('drop', ev => { if (ev.dataTransfer.files[0]) parseFile(ev.dataTransfer.files[0]); });
+fi.addEventListener('change', () => { if (fi.files[0]) parseFile(fi.files[0]); });
+
+// ============================================================
+// PHOTO UPLOAD
+// ============================================================
+function initPhotoGrid() {
+  const grid = document.getElementById('photoGrid');
+  const labels = document.getElementById('photoLabels');
+  grid.innerHTML = ''; labels.innerHTML = '';
+  for (let i = 0; i < 8; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'photo-slot' + (photos[i] ? ' filled' : '');
+    slot.dataset.idx = i;
+    if (photos[i]) {
+      slot.innerHTML = `<img src="${photos[i]}"><div class="overlay"><button onclick="removePhoto(${i})">Remove</button></div>`;
+    } else {
+      slot.innerHTML = `<div class="plus">+</div><div class="plabel">${i===0?'Hero':'Photo '+(i+1)}</div>`;
+    }
+    slot.addEventListener('click', (e) => {
+      if (!photos[i] && !e.target.closest('button')) {
+        const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.multiple = true;
+        inp.onchange = () => addPhotos(inp.files, i);
+        inp.click();
+      }
+    });
+    ['dragover','dragenter'].forEach(e => slot.addEventListener(e, ev => { ev.preventDefault(); slot.classList.add('over'); }));
+    ['dragleave','drop'].forEach(e => slot.addEventListener(e, ev => { ev.preventDefault(); slot.classList.remove('over'); }));
+    slot.addEventListener('drop', ev => {
+      if (ev.dataTransfer.files.length) addPhotos(ev.dataTransfer.files, i);
+    });
+    grid.appendChild(slot);
+    const lb = document.createElement('span');
+    lb.textContent = PHOTO_LABELS[i];
+    labels.appendChild(lb);
+  }
+}
+
+function addPhotos(files, startIdx) {
+  let idx = startIdx;
+  Array.from(files).forEach(file => {
+    while (idx < 8 && photos[idx]) idx++;
+    if (idx >= 8) return;
+    const reader = new FileReader();
+    const capturedIdx = idx;
+    reader.onload = (e) => {
+      // Resize for embedding
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxW = 900;
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = h * maxW / w; w = maxW; }
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        photos[capturedIdx] = canvas.toDataURL('image/jpeg', 0.72);
+        initPhotoGrid();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+    idx++;
+  });
+}
+
+function removePhoto(i) { photos[i] = null; initPhotoGrid(); }
+initPhotoGrid();
+
+// ============================================================
+// REVIEW FORM
+// ============================================================
+function buildReviewForm() {
+  const d = parsedData;
+  const container = document.getElementById('reviewForm');
+
+  function inp(key, label, type='text') {
+    const v = d[key] || '';
+    if (type === 'textarea') return `<div class="field"><label>${label}</label><textarea data-key="${key}">${v}</textarea></div>`;
+    return `<div class="field"><label>${label}</label><input type="text" data-key="${key}" value="${v.replace(/"/g,'&quot;')}"></div>`;
+  }
+
+  let html = `
+  <div class="field-group"><h3>Profile Header</h3>
+    <div class="field-row">
+      ${inp('_headline','Hero Headline (editable)')}
+      ${inp('_eyebrow','Eyebrow Text')}
+    </div>
+    <div class="field-row full">${inp('_heroQuote','Quote for Hero Section','textarea')}</div>
+  </div>
+
+  <div class="field-group"><h3>Personal Information</h3>
+    <div class="field-row">
+      ${inp('id','Expecting ID')}
+      ${inp('dob','Date of Birth')}
+      ${inp('city','City')}
+      ${inp('state','State')}
+      ${inp('country','Country')}
+      ${inp('ethnicity','Ethnicity')}
+      ${inp('religion','Religion')}
+      ${inp('bloodType','Blood Type')}
+      ${inp('height','Height')}
+      ${inp('weight','Weight')}
+      ${inp('bmi','BMI')}
+      ${inp('baseFee','Expected Base Fee ($)')}
+    </div>
+  </div>
+
+  <div class="field-group"><h3>Surrogacy Preferences</h3>
+    <div class="field-row">
+      ${inp('prevSurrogate','Previous Surrogate?')}
+      ${inp('usCitizen','US Citizen / Green Card')}
+      ${inp('covid','Covid-19 Vaccine')}
+      ${inp('willingCarry','Willing to Carry')}
+      ${inp('willingWork','Willing to Work With')}
+      ${inp('willingIPs','Open to IP Types')}
+      ${inp('startPlan','When Plan to Start?')}
+      ${inp('pregnant','Currently Pregnant?')}
+      ${inp('breastfeeding','Currently Breastfeeding?')}
+    </div>
+    <div class="field-row full">${inp('whySurrogacy','Why Surrogacy? (motivation)','textarea')}</div>
+  </div>
+
+  <div class="field-group"><h3>Employment &amp; Background</h3>
+    <div class="field-row">
+      ${inp('employer','Employer')}
+      ${inp('workType','Type of Work')}
+      ${inp('workHours','Hours per Week')}
+      ${inp('workplaceSupportive','Workplace Supportive?')}
+      ${inp('financiallyStable','Financially Stable?')}
+      ${inp('education','Education')}
+      ${inp('criminal','Criminal Record?')}
+    </div>
+  </div>
+
+  <div class="field-group"><h3>Partner &amp; Household</h3>
+    <div class="field-row">
+      ${inp('relStatus','Relationship Status')}
+      ${inp('partnerName','Partner Name (not shown)')}
+      ${inp('relLength','Relationship Length')}
+      ${inp('partnerWork','Partner Occupation')}
+      ${inp('partnerEdu','Partner Education')}
+      ${inp('partnerHealth','Partner in Good Health?')}
+      ${inp('partnerCriminal','Partner Criminal Record?')}
+      ${inp('household','Household Members')}
+      ${inp('smokeVape','Anyone Smokes/Vapes?')}
+      ${inp('tribal','Tribal Registration?')}
+    </div>
+    <div class="field-row full">${inp('supportSystem','Support System')}</div>
+    <div class="field-row full">${inp('tellChildren','What Would You Tell Children?','textarea')}</div>
+  </div>
+
+  <div class="field-group"><h3>Pregnancy History</h3>
+    <div class="field-row">
+      ${inp('timesPregnant','Times Pregnant')}
+      ${inp('numChildren','Own Children')}
+      ${inp('vaginalDel','Vaginal Deliveries')}
+      ${inp('csections','C-Sections')}
+      ${inp('miscarriages','Miscarriages/Stillbirths')}
+      ${inp('abortions','Abortions')}
+      ${inp('premature','Premature Births')}
+      ${inp('lastPregnancy','Last Pregnancy')}
+      ${inp('troubleGettingPreg','Trouble Getting Pregnant?')}
+      ${inp('familyFertility','Family Fertility Problems?')}
+      ${inp('morningSickness','Morning Sickness?')}
+    </div>
+    <div class="field-row full">${inp('descPregnancies','Describe Pregnancies','textarea')}</div>
+  </div>
+
+  <div class="field-group"><h3>Pregnancy Detail Entries</h3>
+    <table class="preg-table" id="pregTable">
+      <thead><tr>
+        <th>Child</th><th>DOB</th><th>Weeks</th><th>Weight</th><th>Gender</th>
+        <th>Type</th><th>Delivery</th><th>GD</th><th>Complication</th>
+        <th>Medication</th><th>Provider</th><th>Hospital</th>
+      </tr></thead>
+      <tbody id="pregBody"></tbody>
+    </table>
+  </div>
+
+  <div class="field-group"><h3>Screening History</h3>
+    <div class="field-row">
+      ${inp('preEclampsia','Pre-eclampsia?')}
+      ${inp('gestDiabetes','Gestational Diabetes?')}
+      ${inp('hypertension','Pregnancy Hypertension?')}
+      ${inp('incompCervix','Incompetent Cervix?')}
+      ${inp('ppd','Postpartum Depression?')}
+      ${inp('weightLossSurgery','Weight Loss Surgery?')}
+      ${inp('recDrugs','Recreational Drugs?')}
+      ${inp('legalObligations','Legal Obligations?')}
+    </div>
+  </div>
+
+  <div class="field-group"><h3>Health &amp; Fitness</h3>
+    <div class="field-row">
+      ${inp('medCondition','Medical Conditions')}
+      ${inp('drugAlcoholHistory','Drug/Alcohol History?')}
+      ${inp('anxietyMeds','Anxiety/Depression Meds (12 mo)?')}
+      ${inp('medications','Medications (12 mo)')}
+      ${inp('vitamins','Vitamins & Supplements')}
+      ${inp('vaccinesUpToDate','Vaccines Up to Date?')}
+      ${inp('birthControl','Birth Control')}
+      ${inp('regularCycle','Regular Cycle?')}
+      ${inp('periodLength','Period Length')}
+      ${inp('healthConcerns','Health Concerns?')}
+      ${inp('allergies','Allergic?')}
+      ${inp('allergyDetail','Allergy Detail')}
+      ${inp('hospitalized','Ever Hospitalized?')}
+      ${inp('therapy','Therapy/Counselling?')}
+      ${inp('lastPap','Last Pap Smear')}
+      ${inp('papResults','Pap Results')}
+      ${inp('exercise','Exercise')}
+      ${inp('exercisePreg','Exercise When Pregnant?')}
+      ${inp('eatHomeOut','Eat Home or Out?')}
+      ${inp('eatOutFreq','Eat Out Frequency')}
+    </div>
+  </div>
+
+  <div class="field-group"><h3>Lifestyle &amp; Personality</h3>
+    <div class="field-row full">${inp('personality','Personality','textarea')}</div>
+    <div class="field-row full">${inp('goals','Goals & Ambitions','textarea')}</div>
+    <div class="field-row full">${inp('typicalDay','Typical Day','textarea')}</div>
+    <div class="field-row full">${inp('familyActivities','Family Activities','textarea')}</div>
+    <div class="field-row full">${inp('hobbies','Hobbies & Talents','textarea')}</div>
+    <div class="field-row">
+      ${inp('relax','To Relax')}
+      ${inp('favColorCandy','Fav Color/Candy/Flower')}
+      ${inp('favVacation','Dream Trip')}
+      ${inp('favBook','Favorite Book')}
+      ${inp('favMovie','Favorite Movie')}
+      ${inp('favSport','Favorite Sport')}
+      ${inp('music','Music')}
+      ${inp('favFood','Favorite Food')}
+    </div>
+    <div class="field-row full">${inp('homeDesc','Home & Neighborhood','textarea')}</div>
+  </div>
+
+  <div class="field-group"><h3>Insurance &amp; Logistics</h3>
+    <div class="field-row">
+      ${inp('insurance','Medical Insurance?')}
+      ${inp('willingInsurance','Willing to Apply for Insurance?')}
+      ${inp('govAssistance','Government Assistance?')}
+      ${inp('reliableTransport','Reliable Transportation?')}
+      ${inp('driversLicense','Driver License?')}
+      ${inp('hasCar','Has Car?')}
+      ${inp('carInsurance','Car Insurance?')}
+      ${inp('travel100','Travel 100+ Miles?')}
+      ${inp('travelState','Travel Out of State?')}
+      ${inp('travelIntl','Int\'l Travel (6 mo)?')}
+    </div>
+  </div>
+
+  <div class="field-group"><h3>Important Considerations</h3>
+    <div class="field-row">
+      ${inp('twoEmbryos','Two Embryos?')}
+      ${inp('doctorDecides','Doctor Decides Embryos?')}
+      ${inp('injections','Injections OK?')}
+      ${inp('drugScreening','Pass Drug Screenings?')}
+      ${inp('terminateMedical','Terminate if Medical?')}
+      ${inp('terminateFatal','Terminate if Fatal Diagnosis?')}
+      ${inp('terminateT21','Terminate for T21?')}
+      ${inp('reduction','Reduction if Triplets+?')}
+      ${inp('bgCheck','Background Check?')}
+      ${inp('psychScreen','Psych Screening?')}
+      ${inp('ivfMeds','IVF Medications?')}
+      ${inp('legalDocs','Legal Docs?')}
+      ${inp('abstain','Abstain During Treatment?')}
+    </div>
+  </div>
+
+  <div class="field-group"><h3>Relationship with IPs</h3>
+    <div class="field-row">
+      ${inp('willingMeet','Willing to Meet IPs?')}
+      ${inp('willingPump','Willing to Pump Breast Milk?')}
+      ${inp('willingShareOnline','Share Journey Online?')}
+    </div>
+    <div class="field-row full">${inp('messageToIPs','Message to Intended Parents','textarea')}</div>
+  </div>
+  `;
+
+  container.innerHTML = html;
+
+  // Set defaults for hero fields
+  if (!d._headline) {
+    const journeyNum = d.prevSurrogate && d.prevSurrogate.toLowerCase().includes('yes') ? 'another' : 'a';
+    container.querySelector('[data-key="_headline"]').value = 'Ready to bless one more family';
+  }
+  if (!d._eyebrow) {
+    container.querySelector('[data-key="_eyebrow"]').value = 'Experienced Gestational Carrier';
+  }
+  if (!d._heroQuote && d.whySurrogacy) {
+    container.querySelector('[data-key="_heroQuote"]').value = d.whySurrogacy;
+  }
+
+  // Build pregnancy table
+  const tbody = document.getElementById('pregBody');
+  tbody.innerHTML = '';
+  pregnancies.forEach((p, pi) => {
+    const tr = document.createElement('tr');
+    const fields = ['childName','dob','gestation','weight','gender','singletonTwins','delivery','gestDiabetes','complication','medication','obgyn','hospital'];
+    fields.forEach(f => {
+      const td = document.createElement('td');
+      const inp = document.createElement('input');
+      inp.value = p[f] || '';
+      inp.dataset.preg = pi;
+      inp.dataset.field = f;
+      td.appendChild(inp);
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+
+  // Sync edits back to state
+  container.querySelectorAll('input[data-key],textarea[data-key]').forEach(el => {
+    el.addEventListener('input', () => { parsedData[el.dataset.key] = el.value; });
+  });
+}
+
+// ============================================================
+// COLLECT STATE FROM FORM
+// ============================================================
+function collectFromForm() {
+  document.querySelectorAll('#reviewForm input[data-key],#reviewForm textarea[data-key]').forEach(el => {
+    parsedData[el.dataset.key] = el.value;
+  });
+  document.querySelectorAll('#pregBody input').forEach(el => {
+    const pi = parseInt(el.dataset.preg);
+    const f = el.dataset.field;
+    if (pregnancies[pi]) pregnancies[pi][f] = el.value;
+  });
+}
+
+// ============================================================
+// PROFILE HTML GENERATOR
+// ============================================================
+function yn(v) {
+  if (!v) return 'N/A';
+  const l = v.toLowerCase().trim();
+  if (['yes','true','1','agreed','y'].some(x => l.includes(x))) return 'Yes';
+  if (['no','false','0','none','n/a','never'].some(x => l === x || l.startsWith(x))) return 'No';
+  return v;
+}
+
+function ynClass(v) {
+  const y = yn(v);
+  if (y === 'Yes') return 'yes';
+  if (y === 'No' || y === 'None') return 'no';
+  return '';
+}
+
+function generateProfile() {
+  collectFromForm();
+  const d = parsedData;
+  const feeNum = parseFloat(String(d.baseFee).replace(/[^0-9.]/g,''));
+  const feeShort = feeNum >= 1000 ? '$' + Math.round(feeNum/1000) + 'K' : '$' + d.baseFee;
+  const feeDisplay = feeNum >= 1000 ? '$' + feeNum.toLocaleString('en-US') : '$' + d.baseFee;
+
+  // Determine journey number
+  let journeyLabel = '1st';
+  const prevText = (d.prevSurrogate || '').toLowerCase();
+  if (prevText.includes('yes')) {
+    // count pregnancies marked as surrogate
+    const surCount = pregnancies.filter(p => (p.childName||'').toLowerCase().includes('surrogate')).length;
+    journeyLabel = surCount >= 2 ? (surCount+1)+'th' : surCount === 1 ? '2nd' : '2nd';
+    if (surCount + 1 === 3) journeyLabel = '3rd';
+  }
+
+  const heroPhoto = photos[0] || photos[1] || '';
+  const allPhotos = photos.filter(p => p);
+
+  // Build pregnancy table rows
+  let pregRows = '';
+  pregnancies.forEach(p => {
+    pregRows += `<tr>
+      <td class="ph">${esc(p.childName||'')}</td>
+      <td>${esc(p.dob||'')}</td><td>${esc(p.gestation||'')}</td><td>${esc(p.weight||'')}</td>
+      <td>${esc(p.gender||'')}</td><td>${esc(p.delivery||'')}</td><td>${esc(p.gestDiabetes||'No')}</td>
+      <td>${esc(p.complication||'None reported')}</td><td>${esc(p.medication||'')}</td>
+      <td>${esc(p.obgyn||'')}</td><td>${esc(p.hospital||'')}</td>
+    </tr>`;
+  });
+
+  // Journey timeline steps
+  const ownKids = parseInt(d.numChildren) || 0;
+  let journeySteps = `<div class="jstep"><div class="jdot"></div><div class="t">${ownKids > 1 ? ownKids + ' children' : ownKids + ' child'}</div><div class="s">Her own family</div></div>`;
+  let surIdx = 0;
+  pregnancies.forEach(p => {
+    if ((p.childName||'').toLowerCase().includes('surrogate')) {
+      surIdx++;
+      journeySteps += `<div class="jstep sur"><div class="jdot"></div><div class="t">${ordinal(surIdx)} surrogacy</div><div class="s">${p.dob ? 'Delivered ' + p.dob : ''}</div></div>`;
+    }
+  });
+  journeySteps += `<div class="jstep sur"><div class="jdot"></div><div class="t">${journeyLabel} journey</div><div class="s">Ready for your family</div></div>`;
+
+  // Gallery HTML
+  let galleryHTML = '';
+  allPhotos.forEach((p, i) => {
+    const isWide = i === 3 || i === 6; // delivery and field shots
+    galleryHTML += `<img src="${p}" class="${isWide?'wide':''}" alt="Photo ${i+1}">`;
+  });
+
+  function row(q, a, cls) {
+    const ac = cls || ynClass(a);
+    return `<div class="row"><span class="q">${q}</span><span class="a ${ac}">${esc(typeof a==='string'?a:yn(a))}</span></div>`;
+  }
+
+  generatedHTML = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Surrogate Profile ${esc(d.id)} | Expecting.Ai</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#1D4664;--purple:#9474CC;--teal:#73C0CA;--yellow:#FEC006;--ink:#243342;--soft:#5B6B7B;--paper:#FFFFFF;--mist:#F4F7FA;--line:#E2E9F0}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Montserrat',sans-serif;font-weight:400;color:var(--ink);background:var(--mist);line-height:1.6}
+.page{max-width:880px;margin:0 auto;background:var(--paper)}
+.brandbar{background:var(--navy);color:#fff;display:flex;justify-content:space-between;align-items:center;padding:14px 40px;font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+.brandbar .logo{font-weight:700;font-size:15px;letter-spacing:.06em;text-transform:none}.brandbar .logo span{color:var(--teal)}
+.hero{display:grid;grid-template-columns:340px 1fr;min-height:420px}
+.hero-photo{background:url(${heroPhoto}) center 20%/cover;min-height:300px}
+.hero-body{padding:44px 40px;background:linear-gradient(135deg,#fff 60%,#F6F3FC)}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--purple);margin-bottom:10px}
+.hero h1{font-size:34px;font-weight:700;color:var(--navy);line-height:1.2;margin-bottom:6px}
+.idline{font-size:13px;color:var(--soft);margin-bottom:20px}.idline b{color:var(--navy);font-weight:600}
+.quote{border-left:3px solid var(--teal);padding:6px 0 6px 16px;font-size:15px;color:var(--ink);font-style:italic;margin-bottom:26px}
+.badges{display:flex;flex-wrap:wrap;gap:10px}
+.badge{background:var(--mist);border:1px solid var(--line);border-radius:8px;padding:10px 14px;min-width:96px}
+.badge .v{font-size:19px;font-weight:700;color:var(--navy);line-height:1.1}.badge .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--soft);margin-top:2px}
+.badge.hl{background:var(--navy);border-color:var(--navy)}.badge.hl .v{color:var(--yellow)}.badge.hl .k{color:#CFE0EC}
+.journey{background:var(--navy);color:#fff;padding:26px 40px}
+.journey h2{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:16px}
+.jrow{display:grid;grid-template-columns:repeat(${Math.min(pregnancies.filter(p=>(p.childName||'').toLowerCase().includes('surrogate')).length+2, 6)},1fr);gap:0;position:relative}
+.jrow:before{content:"";position:absolute;top:9px;left:12%;right:12%;height:2px;background:rgba(255,255,255,.25)}
+.jstep{text-align:center;position:relative;padding:0 8px}.jdot{width:20px;height:20px;border-radius:50%;background:var(--teal);margin:0 auto 10px;position:relative;z-index:1;border:4px solid var(--navy)}
+.jstep.sur .jdot{background:var(--yellow)}.jstep .t{font-size:12.5px;font-weight:600}.jstep .s{font-size:11px;color:#B9CCDB;margin-top:2px}
+.jlegend{margin-top:14px;font-size:11px;color:#B9CCDB;display:flex;gap:18px}.jlegend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+section{padding:34px 40px;border-bottom:1px solid var(--line)}
+section h2{font-size:15px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.12em;margin-bottom:20px;display:flex;align-items:center;gap:12px}
+section h2:after{content:"";flex:1;height:2px;background:linear-gradient(90deg,var(--teal),transparent)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 36px}
+.row{display:flex;justify-content:space-between;gap:16px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+.row .q{color:var(--soft)}.row .a{font-weight:600;color:var(--ink);text-align:right}.row .a.yes{color:#1E7F4F}.row .a.no{color:var(--navy)}.full{grid-column:1/-1}
+.prose{font-size:14px;color:var(--ink);padding:10px 0}.prose .q{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--purple);margin-bottom:3px}
+.ptable{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+.ptable th{background:var(--mist);color:var(--navy);font-size:11px;text-transform:uppercase;letter-spacing:.06em;text-align:left;padding:9px 12px;border-bottom:2px solid var(--teal)}
+.ptable td{padding:9px 12px;border-bottom:1px solid var(--line)}
+.ptable td.ph{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--soft);font-weight:600;white-space:nowrap}
+.ptable tbody tr:nth-child(even){background:#FAFCFD}
+.tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.note{font-size:12px;color:var(--soft);margin-top:10px;font-style:italic}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
+.card{background:var(--mist);border-radius:10px;padding:16px;border-top:3px solid var(--teal)}.card:nth-child(2){border-top-color:var(--purple)}.card:nth-child(3){border-top-color:var(--yellow)}
+.card .h{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--navy);margin-bottom:6px}.card p{font-size:13px;color:var(--soft)}
+.gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.gallery img{width:100%;height:250px;object-fit:cover;border-radius:10px;display:block}.gallery img.wide{grid-column:span 2;object-position:center 30%}
+.message{background:linear-gradient(135deg,var(--navy),#2A5B80);border-radius:12px;color:#fff;padding:28px 32px;text-align:center}
+.message .h{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--teal);font-weight:700;margin-bottom:10px}.message p{font-size:17px;font-style:italic;line-height:1.55}
+footer{padding:24px 40px;font-size:11px;color:var(--soft);background:var(--mist)}footer .brand{font-weight:700;color:var(--navy);font-size:12px;margin-bottom:4px}
+@media(max-width:720px){
+  .brandbar{font-size:9.5px;letter-spacing:.08em;padding:12px 22px}.brandbar .logo{font-size:14px}
+  .hero{grid-template-columns:1fr}.hero-photo{min-height:340px}.hero-body{padding:26px 20px}.hero h1{font-size:26px}
+  .badges{gap:8px}.badge{flex:1 1 calc(33.3% - 8px);min-width:0;padding:9px 10px}.badge .v{font-size:16px}
+  .grid{grid-template-columns:1fr;gap:0}.row{flex-direction:column;align-items:flex-start;gap:2px;padding:9px 0}
+  .row .q{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em}.row .a{text-align:left}
+  .cards{grid-template-columns:1fr}
+  .jrow{grid-template-columns:repeat(2,1fr);gap:20px 8px}.jrow:before{display:none}
+  .tscroll{margin:0 -22px;padding:0 22px}.ptable{min-width:640px}
+  .gallery{grid-template-columns:1fr 1fr}.gallery img{height:180px}.gallery img.wide{grid-column:span 2}
+  .message{padding:22px 18px}.message p{font-size:15px}
+  section,.brandbar,.journey{padding-left:22px;padding-right:22px}
+}
+@media print{body{background:#fff}.page{max-width:none}section{break-inside:avoid}}
+</style></head><body>
+<div class="page">
+
+<div class="brandbar"><div class="logo"><svg id="Logo_line" data-name="Logo line" xmlns="http://www.w3.org/2000/svg" width="160" height="27" viewBox="0 0 325.939 55.539"> <path id="Path_83" data-name="Path 83" d="M177.965,38.815a13.8,13.8,0,0,0-7.424-1.921,15.142,15.142,0,0,0-7.75,1.954,13.97,13.97,0,0,0-5.275,5.438,16.2,16.2,0,0,0-1.921,8.011,15.468,15.468,0,0,0,2.019,7.945,14.36,14.36,0,0,0,5.6,5.438,16.965,16.965,0,0,0,13.514,1.009,15.3,15.3,0,0,0,4.689-2.442,1.954,1.954,0,0,0,.879-1.726,2.638,2.638,0,0,0-1.009-1.824,2.442,2.442,0,0,0-1.693-.586,3.159,3.159,0,0,0-1.791.651,10.909,10.909,0,0,1-2.9,1.465,10.485,10.485,0,0,1-3.517.651,11.137,11.137,0,0,1-5.6-1.4,10.062,10.062,0,0,1-5.047-7.262h21.036a2.54,2.54,0,0,0,1.824-.684,2.312,2.312,0,0,0,.716-1.758,17.421,17.421,0,0,0-1.628-7.717,12.472,12.472,0,0,0-4.722-5.275m-12.83,4.233a10.1,10.1,0,0,1,5.406-1.4,8.076,8.076,0,0,1,7.685,4.722,11.2,11.2,0,0,1,.977,3.419H160.772a11.43,11.43,0,0,1,.944-2.963,8.922,8.922,0,0,1,3.419-3.81" transform="translate(-104.555 -24.878)" fill="#ffffff"/> <path id="Path_84" data-name="Path 84" d="M272.011,53.119l8.336-10.941a3.452,3.452,0,0,0,.814-2.051,2.638,2.638,0,0,0-.586-1.791,2.214,2.214,0,0,0-1.824-.749,3.029,3.029,0,0,0-1.107.2,2.312,2.312,0,0,0-.944.749L268.56,49.374l-9.085-10.844a2.573,2.573,0,0,0-2.117-.944,2.247,2.247,0,0,0-1.824.716,2.41,2.41,0,0,0-.554,1.758,3.256,3.256,0,0,0,.782,1.921l9.118,10.811-8.564,10.746a3.257,3.257,0,0,0-.781,1.986,2.41,2.41,0,0,0,.651,1.693,2.247,2.247,0,0,0,1.758.684,2.638,2.638,0,0,0,1.986-.879l8.369-10.55,8.792,10.55a2.084,2.084,0,0,0,.944.716,3.289,3.289,0,0,0,1.042.163,2.507,2.507,0,0,0,1.791-.651,2.28,2.28,0,0,0,.716-1.628,2.963,2.963,0,0,0-.814-1.954Z" transform="translate(-171.574 -25.342)" fill="#ffffff"/> <path id="Path_85" data-name="Path 85" d="M379.022,38.913a15.989,15.989,0,0,0-15.565,0,14.817,14.817,0,0,0-5.438,5.5A15.989,15.989,0,0,0,356,52.3V77.565a2.866,2.866,0,0,0,4.885,2.019,2.8,2.8,0,0,0,.781-2.019V62.619a14.23,14.23,0,0,0,4.689,3.68,14,14,0,0,0,13.253-.651,14.36,14.36,0,0,0,5.047-5.5,16.314,16.314,0,0,0,1.856-7.848,15.4,15.4,0,0,0-2.019-7.88,15.044,15.044,0,0,0-5.471-5.5m.749,18.659a9.867,9.867,0,0,1-3.517,3.712,10,10,0,0,1-10.062,0,9.574,9.574,0,0,1-3.517-3.712,11.727,11.727,0,0,1,0-10.616,9.8,9.8,0,0,1,13.579-3.712,9.866,9.866,0,0,1,3.517,3.712,10.876,10.876,0,0,1,1.3,5.34,10.746,10.746,0,0,1-1.3,5.275" transform="translate(-239.703 -24.878)" fill="#ffffff"/> <path id="Path_86" data-name="Path 86" d="M491.065,38.815a13.794,13.794,0,0,0-7.424-1.921,15.142,15.142,0,0,0-7.75,1.954,13.969,13.969,0,0,0-5.275,5.438,16.2,16.2,0,0,0-1.921,8.011,15.468,15.468,0,0,0,2.019,7.945,14.36,14.36,0,0,0,5.6,5.438,16.966,16.966,0,0,0,13.514,1.009,15.305,15.305,0,0,0,4.689-2.442,1.954,1.954,0,0,0,.879-1.726,2.638,2.638,0,0,0-1.009-1.824,2.442,2.442,0,0,0-1.693-.586,3.159,3.159,0,0,0-1.791.651,10.909,10.909,0,0,1-2.9,1.465,10.486,10.486,0,0,1-3.517.651,11.137,11.137,0,0,1-5.6-1.4,10.062,10.062,0,0,1-5.047-7.262h21.068a2.54,2.54,0,0,0,1.823-.684,2.312,2.312,0,0,0,.716-1.758,17.421,17.421,0,0,0-1.628-7.718,12.472,12.472,0,0,0-4.722-5.275m-12.863,4.266a10.1,10.1,0,0,1,5.406-1.4,8.076,8.076,0,0,1,7.685,4.722,11.2,11.2,0,0,1,.977,3.419H473.9a11.425,11.425,0,0,1,.944-2.963,8.923,8.923,0,0,1,3.387-3.777" transform="translate(-315.699 -24.878)" fill="#ffffff"/> <path id="Path_87" data-name="Path 87" d="M595.1,38.131a14.166,14.166,0,0,0-5.992-1.237,15.142,15.142,0,0,0-7.75,1.954,14.133,14.133,0,0,0-5.308,5.471,16.151,16.151,0,0,0-1.954,7.978,15.6,15.6,0,0,0,1.954,7.848,14.588,14.588,0,0,0,5.438,5.471,15.337,15.337,0,0,0,7.88,2.019,14.027,14.027,0,0,0,9.964-3.712,2.051,2.051,0,0,0,.651-1.758A2.67,2.67,0,0,0,598.94,60.4a2.182,2.182,0,0,0-1.661-.521,3.354,3.354,0,0,0-1.824.814,8.14,8.14,0,0,1-2.67,1.465,11.169,11.169,0,0,1-3.419.456,9.671,9.671,0,0,1-5.145-1.368,9.508,9.508,0,0,1-3.452-3.68,11.106,11.106,0,0,1-1.237-5.308,11.659,11.659,0,0,1,1.2-5.471,9.021,9.021,0,0,1,3.419-3.615,9.476,9.476,0,0,1,4.982-1.3,8.922,8.922,0,0,1,6.741,2.9,3.354,3.354,0,0,0,1.726.977,2.117,2.117,0,0,0,1.726-.358,2.9,2.9,0,0,0,1.2-1.661,1.987,1.987,0,0,0-.554-1.824,14.391,14.391,0,0,0-4.884-3.745" transform="translate(-386.778 -24.878)" fill="#ffffff"/> <path id="Path_88" data-name="Path 88" d="M687.467,42.387h-1.889a3.712,3.712,0,0,1-3-1.5,5.666,5.666,0,0,1-1.2-3.712V23.5H686.1a2.67,2.67,0,0,0,1.889-.651,2.182,2.182,0,0,0,.716-1.661,2.312,2.312,0,0,0-.716-1.758,2.67,2.67,0,0,0-1.889-.651h-4.722V10.768a2.768,2.768,0,1,0-5.536,0v7.978H673.3a2.67,2.67,0,0,0-1.889.651,2.312,2.312,0,0,0-.716,1.758,2.182,2.182,0,0,0,.716,1.661,2.67,2.67,0,0,0,1.889.651h2.54V37.144a11.657,11.657,0,0,0,1.27,5.471,9.9,9.9,0,0,0,3.484,3.842,9.085,9.085,0,0,0,4.982,1.4h1.009a3.517,3.517,0,0,0,2.345-.782,2.507,2.507,0,0,0,.912-1.986,2.9,2.9,0,0,0-.684-1.986,2.182,2.182,0,0,0-1.693-.782" transform="translate(-451.924 -5.395)" fill="#ffffff"/> <path id="Path_89" data-name="Path 89" d="M750.547,0a3.517,3.517,0,0,0-2.573,1.075A3.517,3.517,0,0,0,746.9,3.647a3.517,3.517,0,0,0,1.075,2.572,3.615,3.615,0,0,0,5.145,0,3.517,3.517,0,0,0,1.075-2.572,3.517,3.517,0,0,0-1.075-2.573A3.517,3.517,0,0,0,750.547,0" transform="translate(-503.314 0.001)" fill="#ffffff"/> <path id="Path_90" data-name="Path 90" d="M752.228,37.589a2.8,2.8,0,0,0-2.019.782,2.7,2.7,0,0,0-.814,2.051v24.65a2.866,2.866,0,0,0,4.885,2.019,2.8,2.8,0,0,0,.781-2.019V40.422a2.67,2.67,0,0,0-2.833-2.833" transform="translate(-504.995 -25.345)" fill="#ffffff"/> <path id="Path_91" data-name="Path 91" d="M818.21,38.424a14.132,14.132,0,0,0-6.838-1.628,13.514,13.514,0,0,0-6.578,1.6,12.667,12.667,0,0,0-2.833,2.084v-.586a2.866,2.866,0,0,0-4.852-2.051,2.7,2.7,0,0,0-.814,2.051V64.6a2.866,2.866,0,0,0,4.884,2.019,2.8,2.8,0,0,0,.782-2.019V48.974a6.154,6.154,0,0,1,1.107-3.647,7.879,7.879,0,0,1,3-2.507,9.281,9.281,0,0,1,4.2-.944,10.094,10.094,0,0,1,4.526.977,7.326,7.326,0,0,1,3.126,2.963,10.029,10.029,0,0,1,1.172,5.145V64.572a2.833,2.833,0,0,0,5.666,0V50.96A15.734,15.734,0,0,0,823,43.21a11.787,11.787,0,0,0-4.754-4.787" transform="translate(-536.623 -24.812)" fill="#ffffff"/> <path id="Path_92" data-name="Path 92" d="M934.551,44.332a14.262,14.262,0,0,0-5.406-5.406,16.835,16.835,0,0,0-15.793,0,14.263,14.263,0,0,0-5.406,5.438,15.983,15.983,0,0,0-1.954,8.011,16.77,16.77,0,0,0,1.823,7.945,13.481,13.481,0,0,0,12.342,7.392,11.853,11.853,0,0,0,6.773-1.954,13.219,13.219,0,0,0,4.168-4.526v2.735a12.691,12.691,0,0,1-1.335,6.089,9.151,9.151,0,0,1-3.582,3.712,9.769,9.769,0,0,1-4.885,1.3,12.113,12.113,0,0,1-5.145-1.042,10.225,10.225,0,0,1-3.777-2.931,2.833,2.833,0,0,0-1.758-1.107,2.67,2.67,0,0,0-2.084.456,2.474,2.474,0,0,0-1.074,1.6A2.344,2.344,0,0,0,907.979,74a15.5,15.5,0,0,0,5.829,4.559,17.681,17.681,0,0,0,7.359,1.563A15.11,15.11,0,0,0,929.178,78a14.783,14.783,0,0,0,5.406-5.666,16.38,16.38,0,0,0,1.954-7.945V52.343a16.1,16.1,0,0,0-1.954-8.011M926.41,61.363a10.42,10.42,0,0,1-10.192,0,9.508,9.508,0,0,1-3.484-3.647,11.005,11.005,0,0,1-1.27-5.373,11.169,11.169,0,0,1,1.27-5.406,9.443,9.443,0,0,1,3.484-3.68,10.42,10.42,0,0,1,10.192,0,9.248,9.248,0,0,1,3.452,3.68,11.364,11.364,0,0,1,1.237,5.406,11.2,11.2,0,0,1-1.237,5.373,9.313,9.313,0,0,1-3.452,3.647" transform="translate(-610.599 -24.924)" fill="#ffffff"/> <path id="Path_93" data-name="Path 93" d="M25.185,46.567H2.717a3.517,3.517,0,1,1,0-7H25.185a3.517,3.517,0,0,1,0,7" transform="translate(1.138 -26.671)" fill="#ffffff"/> <path id="Path_94" data-name="Path 94" d="M104.434,43.117a3.517,3.517,0,1,1-3.517-3.517,3.517,3.517,0,0,1,3.517,3.517" transform="translate(-65.313 -26.705)" fill="#fec006"/> <path id="Path_95" data-name="Path 95" d="M25.185,116.267H2.717a3.517,3.517,0,1,1,0-7H25.185a3.517,3.517,0,0,1,0,7" transform="translate(1.138 -73.674)" fill="#ffffff"/> <path id="Path_96" data-name="Path 96" d="M104.434,112.884a3.517,3.517,0,1,1-3.517-3.484,3.517,3.517,0,0,1,3.517,3.484" transform="translate(-65.313 -73.776)" fill="#9474cc"/> <path id="Path_97" data-name="Path 97" d="M10.046,81.467H2.817a3.517,3.517,0,1,1,0-7h7.229a3.517,3.517,0,1,1,0,7" transform="translate(1.071 -50.206)" fill="#73c0ca"/> <path id="Path_98" data-name="Path 98" d="M57.334,78.184A3.517,3.517,0,1,1,53.849,74.7a3.517,3.517,0,0,1,3.484,3.484" transform="translate(-33.55 -50.375)" fill="#73c0ca"/> </svg></div><div>Gestational Surrogate Profile</div></div>
+
+<div class="hero">
+  <div class="hero-photo"></div>
+  <div class="hero-body">
+    <div class="eyebrow">${esc(d._eyebrow || 'Gestational Carrier')}</div>
+    <h1>${esc(d._headline || 'Surrogate Profile')}</h1>
+    <div class="idline"><b>#${esc(d.id)}</b> &nbsp;·&nbsp; ${esc(d.city)}, ${esc(d.state)}, ${esc(d.country||'United States')} &nbsp;·&nbsp; ${esc(d.startPlan||'')}</div>
+    ${d._heroQuote ? `<div class="quote">"${esc(d._heroQuote)}"</div>` : ''}
+    <div class="badges">
+      <div class="badge hl"><div class="v">${journeyLabel}</div><div class="k">Journey</div></div>
+      <div class="badge"><div class="v">${calcAge(d.dob)}</div><div class="k">Age</div></div>
+      <div class="badge"><div class="v">${esc(d.bmi)}</div><div class="k">BMI</div></div>
+      <div class="badge"><div class="v">${esc(d.vaginalDel||'0')} / ${esc(d.timesPregnant||'0')}</div><div class="k">Vaginal deliveries</div></div>
+      <div class="badge"><div class="v">${parseInt(d.csections||0)+parseInt(d.miscarriages||0)}</div><div class="k">Complications</div></div>
+      <div class="badge"><div class="v">${feeShort}</div><div class="k">Base fee</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="journey">
+  <h2>Her Journey So Far</h2>
+  <div class="jrow">${journeySteps}</div>
+  <div class="jlegend"><span><i style="background:var(--teal)"></i>Own children</span><span><i style="background:var(--yellow)"></i>Surrogacy</span></div>
+</div>
+
+<section>
+  <h2>Get to Know Me</h2>
+  <div class="grid">
+    ${row('Date of birth', formatDOB(d.dob))}
+    ${row('Location', (d.city||'')+', '+(d.state||''))}
+    ${row('US Citizen / Green Card holder', d.usCitizen)}
+    ${row('Previous surrogate', d.prevSurrogate)}
+    ${row('Height', d.height)}
+    ${row('Weight', d.weight)}
+    ${row('BMI', d.bmi, '')}
+    ${row('Ethnicity', d.ethnicity, '')}
+    ${row('Religion', d.religion, '')}
+    ${row('Blood type', d.bloodType, '')}
+    ${row('Currently pregnant', d.pregnant)}
+    ${row('Currently breastfeeding', d.breastfeeding)}
+    ${row('Covid-19 vaccine received or willing', d.covid)}
+    ${row('Expected base fee', feeDisplay, '')}
+    ${row('Willing to carry', d.willingCarry, '')}
+    ${row('Willing to work with', d.willingWork, '')}
+    <div class="row full"><span class="q">Open to intended parents who are</span><span class="a">${esc(d.willingIPs||'')}</span></div>
+    <div class="row full"><span class="q">When do you plan to start?</span><span class="a">${esc(d.startPlan||'')}</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>Employment &amp; Background</h2>
+  <div class="grid">
+    <div class="row full"><span class="q">Employer</span><span class="a">${esc(d.employer||'')}</span></div>
+    <div class="row full"><span class="q">Type of work</span><span class="a">${esc(d.workType||'')}</span></div>
+    ${row('Workplace supportive of pregnancy', d.workplaceSupportive)}
+    ${row('Financially stable', d.financiallyStable)}
+    ${row('Education', d.education, '')}
+    ${row('Criminal record', d.criminal)}
+  </div>
+</section>
+
+<section>
+  <h2>Relationships &amp; Household</h2>
+  <div class="grid">
+    ${row('Marital status', (d.relStatus||'')+(d.relLength ? ', '+d.relLength+' together':''), '')}
+    ${row('Household', d.household, '')}
+    ${row("Partner's occupation", d.partnerWork, '')}
+    ${row("Partner's education", d.partnerEdu, '')}
+    ${row('Partner in good health', d.partnerHealth)}
+    ${row('Partner criminal record', d.partnerCriminal)}
+    ${row('Anyone in household smokes or vapes', d.smokeVape)}
+    ${row('Tribal registration', d.tribal)}
+    <div class="row full"><span class="q">Support system</span><span class="a">${esc(d.supportSystem||'')}</span></div>
+  </div>
+  ${d.tellChildren ? `<div class="prose"><span class="q">What would you tell your children about the pregnancy?</span>${esc(d.tellChildren)}</div>` : ''}
+</section>
+
+<section>
+  <h2>Pregnancy History</h2>
+  <div class="grid">
+    ${row('Total pregnancies', d.timesPregnant, '')}
+    ${row('Own children', d.numChildren, '')}
+    ${row('Vaginal deliveries', (d.vaginalDel||'0')+' of '+(d.timesPregnant||'0'), '')}
+    ${row('C-sections', d.csections||'0', '')}
+    ${row('Miscarriages / stillbirths', d.miscarriages||'0', '')}
+    ${row('Abortions', d.abortions||'0', '')}
+    ${row('Premature births', d.premature||'0', '')}
+    ${row('Last delivery', d.lastPregnancy||'', '')}
+    ${row('Trouble getting pregnant', d.troubleGettingPreg)}
+    ${row('Family history of fertility problems', d.familyFertility)}
+    ${row('Morning sickness', d.morningSickness)}
+    <div class="row full"><span class="q">In her words, her pregnancies were</span><span class="a">"${esc(d.descPregnancies||'')}"</span></div>
+  </div>
+
+  ${pregnancies.length ? `
+  <h2 style="margin-top:28px">Pregnancy &amp; Delivery Details</h2>
+  <div class="tscroll">
+  <table class="ptable">
+    <thead><tr><th></th>${pregnancies.map((_,i) => `<th>Pregnancy ${i+1}${(pregnancies[i].childName||'').toLowerCase().includes('surrogate')?' · Surrogacy':''}</th>`).join('')}</tr></thead>
+    <tbody>
+      <tr><td class="ph">Child</td>${pregnancies.map(p => `<td>${esc(p.childName||'')}</td>`).join('')}</tr>
+      <tr><td class="ph">Date of birth</td>${pregnancies.map(p => `<td>${esc(p.dob||'')}</td>`).join('')}</tr>
+      <tr><td class="ph">Weeks gestation</td>${pregnancies.map(p => `<td>${esc(p.gestation||'')}</td>`).join('')}</tr>
+      <tr><td class="ph">Birth weight</td>${pregnancies.map(p => `<td>${esc(p.weight||'')}</td>`).join('')}</tr>
+      <tr><td class="ph">Gender</td>${pregnancies.map(p => `<td>${esc(p.gender||'')}</td>`).join('')}</tr>
+      <tr><td class="ph">Delivery</td>${pregnancies.map(p => `<td>${esc(p.delivery||'')}</td>`).join('')}</tr>
+      <tr><td class="ph">Gestational diabetes</td>${pregnancies.map(p => `<td>${esc(p.gestDiabetes||'No')}</td>`).join('')}</tr>
+      <tr><td class="ph">Complications</td>${pregnancies.map(p => `<td>${esc(p.complication||'None reported')}</td>`).join('')}</tr>
+      <tr><td class="ph">Medication</td>${pregnancies.map(p => `<td>${esc(p.medication||'')}</td>`).join('')}</tr>
+      <tr><td class="ph">Care provider</td>${pregnancies.map(p => `<td>${esc(p.obgyn||'')}</td>`).join('')}</tr>
+      <tr><td class="ph">Hospital</td>${pregnancies.map(p => `<td>${esc(p.hospital||'')}</td>`).join('')}</tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="note">All details self-reported on the intake questionnaire.</div>
+  ` : ''}
+
+  <h2 style="margin-top:28px">Screening History</h2>
+  <div class="grid">
+    ${row('Pre-eclampsia (singleton)', d.preEclampsia)}
+    ${row('Gestational diabetes', d.gestDiabetes)}
+    ${row('Pregnancy-induced hypertension', d.hypertension)}
+    ${row('Incompetent cervix', d.incompCervix)}
+    ${row('Postpartum depression', d.ppd)}
+    ${row('Weight loss surgery', d.weightLossSurgery)}
+    ${row('Recreational drug use', d.recDrugs)}
+    ${row('Outstanding legal obligations', d.legalObligations)}
+  </div>
+</section>
+
+<section>
+  <h2>Health &amp; Fitness</h2>
+  <div class="grid">
+    ${row('Medical conditions', d.medCondition || 'None')}
+    ${row('History of drug or alcohol abuse', d.drugAlcoholHistory)}
+    ${row('Anxiety or depression medication (12 mo.)', d.anxietyMeds)}
+    ${row('Medications taken (past 12 months)', d.medications || 'None')}
+    <div class="row full"><span class="q">Vitamins &amp; supplements</span><span class="a">${esc(d.vitamins||'')}</span></div>
+    ${row('Vaccines up to date', d.vaccinesUpToDate)}
+    ${row('Birth control', d.birthControl||'None', '')}
+    ${row('Regular menstrual cycle', (yn(d.regularCycle))+(d.periodLength ? ', '+d.periodLength : ''))}
+    ${row('Health concerns', d.healthConcerns)}
+    ${row('Allergies', d.allergies === 'Yes' ? (d.allergyDetail||'Yes') : (d.allergies||'None'))}
+    ${row('Ever hospitalized', d.hospitalized)}
+    ${row('Therapy or counselling', d.therapy)}
+    ${row('Last pap smear', d.lastPap||'', '')}
+    ${row('Exercise', d.exercise||'', '')}
+    ${row('Exercises while pregnant', d.exercisePreg)}
+    ${row('Eats at home or out', d.eatHomeOut||'', '')}
+  </div>
+</section>
+
+<section>
+  <h2>Lifestyle &amp; Personality</h2>
+  ${d.personality ? `<div class="prose"><span class="q">How would you describe your personality?</span>"${esc(d.personality)}"</div>` : ''}
+  ${d.goals ? `<div class="prose"><span class="q">Goals &amp; ambitions</span>"${esc(d.goals)}"</div>` : ''}
+  ${d.typicalDay ? `<div class="prose"><span class="q">A typical day</span>"${esc(d.typicalDay)}"</div>` : ''}
+  ${d.familyActivities ? `<div class="prose"><span class="q">Family activities</span>"${esc(d.familyActivities)}"</div>` : ''}
+  ${d.hobbies ? `<div class="prose"><span class="q">Hobbies &amp; talents</span>"${esc(d.hobbies)}"</div>` : ''}
+  <div class="grid" style="margin-top:10px">
+    ${row('To relax', d.relax||'', '')}
+    ${row('Favorite color & flower', d.favColorCandy||'', '')}
+    ${row('Dream trip', d.favVacation||'', '')}
+    ${row('Favorite book', d.favBook||'', '')}
+    ${row('Favorite movie', d.favMovie||'', '')}
+    ${row('Favorite sport', d.favSport||'', '')}
+    ${row('Music', d.music||'', '')}
+    ${row('Favorite food', d.favFood||'', '')}
+  </div>
+  ${d.homeDesc ? `<div class="prose"><span class="q">Home &amp; neighborhood</span>"${esc(d.homeDesc)}"</div>` : ''}
+</section>
+
+<section>
+  <h2>Insurance &amp; Logistics</h2>
+  <div class="grid">
+    ${row('Current medical insurance', d.insurance)}
+    ${row('Willing to apply for insurance (at no cost)', d.willingInsurance)}
+    ${row('Government assistance', d.govAssistance)}
+    ${row('Reliable transportation', d.reliableTransport)}
+    ${row('Car insurance', d.carInsurance)}
+    ${row('Will travel 100+ miles for appointments', d.travel100)}
+    ${row('Will travel out of state for screening & transfer', d.travelState)}
+    ${row('International travel (past 6 months)', d.travelIntl)}
+  </div>
+</section>
+
+<section>
+  <h2>Important Considerations</h2>
+  <div class="grid">
+    ${row('Willing to have two embryos transferred', d.twoEmbryos)}
+    ${row('Doctor decides number of embryos', d.doctorDecides)}
+    ${row('Subcutaneous & intramuscular injections', d.injections)}
+    ${row('Able to pass random drug screenings', d.drugScreening)}
+    ${row('Termination if medically advised', d.terminateMedical)}
+    ${row('Termination for fatal or debilitating diagnosis', d.terminateFatal)}
+    ${row('Termination for Trisomy 21 if requested', d.terminateT21)}
+    ${row('Reduction if pregnant with triplets or more', d.reduction)}
+    ${row('Background check (self and partner)', d.bgCheck)}
+    ${row('Psychological screening', d.psychScreen)}
+    ${row('All IVF cycle medications as prescribed', d.ivfMeds)}
+    ${row('Timely signing of all legal documents', d.legalDocs)}
+    ${row('Abstain from sexual activity during treatment', d.abstain)}
+  </div>
+</section>
+
+<section>
+  <h2>Relationship with Intended Parents</h2>
+  <div class="grid">
+    ${row('Willing to meet the intended parents', d.willingMeet)}
+    ${row('Willing to pump breast milk', d.willingPump)}
+    <div class="row full"><span class="q">Comfortable sharing the journey online</span><span class="a ${ynClass(d.willingShareOnline)}">${yn(d.willingShareOnline)}</span></div>
+  </div>
+  ${d.messageToIPs ? `<div style="height:18px"></div><div class="message"><div class="h">Her message to you</div><p>"${esc(d.messageToIPs)}"</p></div>` : ''}
+</section>
+
+${allPhotos.length ? `
+<section>
+  <h2>Photos</h2>
+  <div class="gallery">${galleryHTML}</div>
+</section>
+` : ''}
+
+<footer>
+  <div class="brand"><svg id="Logo_line" data-name="Logo line" xmlns="http://www.w3.org/2000/svg" width="120" height="20" viewBox="0 0 325.939 55.539"> <path id="Path_83" data-name="Path 83" d="M177.965,38.815a13.8,13.8,0,0,0-7.424-1.921,15.142,15.142,0,0,0-7.75,1.954,13.97,13.97,0,0,0-5.275,5.438,16.2,16.2,0,0,0-1.921,8.011,15.468,15.468,0,0,0,2.019,7.945,14.36,14.36,0,0,0,5.6,5.438,16.965,16.965,0,0,0,13.514,1.009,15.3,15.3,0,0,0,4.689-2.442,1.954,1.954,0,0,0,.879-1.726,2.638,2.638,0,0,0-1.009-1.824,2.442,2.442,0,0,0-1.693-.586,3.159,3.159,0,0,0-1.791.651,10.909,10.909,0,0,1-2.9,1.465,10.485,10.485,0,0,1-3.517.651,11.137,11.137,0,0,1-5.6-1.4,10.062,10.062,0,0,1-5.047-7.262h21.036a2.54,2.54,0,0,0,1.824-.684,2.312,2.312,0,0,0,.716-1.758,17.421,17.421,0,0,0-1.628-7.717,12.472,12.472,0,0,0-4.722-5.275m-12.83,4.233a10.1,10.1,0,0,1,5.406-1.4,8.076,8.076,0,0,1,7.685,4.722,11.2,11.2,0,0,1,.977,3.419H160.772a11.43,11.43,0,0,1,.944-2.963,8.922,8.922,0,0,1,3.419-3.81" transform="translate(-104.555 -24.878)" fill="#1d4664"/> <path id="Path_84" data-name="Path 84" d="M272.011,53.119l8.336-10.941a3.452,3.452,0,0,0,.814-2.051,2.638,2.638,0,0,0-.586-1.791,2.214,2.214,0,0,0-1.824-.749,3.029,3.029,0,0,0-1.107.2,2.312,2.312,0,0,0-.944.749L268.56,49.374l-9.085-10.844a2.573,2.573,0,0,0-2.117-.944,2.247,2.247,0,0,0-1.824.716,2.41,2.41,0,0,0-.554,1.758,3.256,3.256,0,0,0,.782,1.921l9.118,10.811-8.564,10.746a3.257,3.257,0,0,0-.781,1.986,2.41,2.41,0,0,0,.651,1.693,2.247,2.247,0,0,0,1.758.684,2.638,2.638,0,0,0,1.986-.879l8.369-10.55,8.792,10.55a2.084,2.084,0,0,0,.944.716,3.289,3.289,0,0,0,1.042.163,2.507,2.507,0,0,0,1.791-.651,2.28,2.28,0,0,0,.716-1.628,2.963,2.963,0,0,0-.814-1.954Z" transform="translate(-171.574 -25.342)" fill="#1d4664"/> <path id="Path_85" data-name="Path 85" d="M379.022,38.913a15.989,15.989,0,0,0-15.565,0,14.817,14.817,0,0,0-5.438,5.5A15.989,15.989,0,0,0,356,52.3V77.565a2.866,2.866,0,0,0,4.885,2.019,2.8,2.8,0,0,0,.781-2.019V62.619a14.23,14.23,0,0,0,4.689,3.68,14,14,0,0,0,13.253-.651,14.36,14.36,0,0,0,5.047-5.5,16.314,16.314,0,0,0,1.856-7.848,15.4,15.4,0,0,0-2.019-7.88,15.044,15.044,0,0,0-5.471-5.5m.749,18.659a9.867,9.867,0,0,1-3.517,3.712,10,10,0,0,1-10.062,0,9.574,9.574,0,0,1-3.517-3.712,11.727,11.727,0,0,1,0-10.616,9.8,9.8,0,0,1,13.579-3.712,9.866,9.866,0,0,1,3.517,3.712,10.876,10.876,0,0,1,1.3,5.34,10.746,10.746,0,0,1-1.3,5.275" transform="translate(-239.703 -24.878)" fill="#1d4664"/> <path id="Path_86" data-name="Path 86" d="M491.065,38.815a13.794,13.794,0,0,0-7.424-1.921,15.142,15.142,0,0,0-7.75,1.954,13.969,13.969,0,0,0-5.275,5.438,16.2,16.2,0,0,0-1.921,8.011,15.468,15.468,0,0,0,2.019,7.945,14.36,14.36,0,0,0,5.6,5.438,16.966,16.966,0,0,0,13.514,1.009,15.305,15.305,0,0,0,4.689-2.442,1.954,1.954,0,0,0,.879-1.726,2.638,2.638,0,0,0-1.009-1.824,2.442,2.442,0,0,0-1.693-.586,3.159,3.159,0,0,0-1.791.651,10.909,10.909,0,0,1-2.9,1.465,10.486,10.486,0,0,1-3.517.651,11.137,11.137,0,0,1-5.6-1.4,10.062,10.062,0,0,1-5.047-7.262h21.068a2.54,2.54,0,0,0,1.823-.684,2.312,2.312,0,0,0,.716-1.758,17.421,17.421,0,0,0-1.628-7.718,12.472,12.472,0,0,0-4.722-5.275m-12.863,4.266a10.1,10.1,0,0,1,5.406-1.4,8.076,8.076,0,0,1,7.685,4.722,11.2,11.2,0,0,1,.977,3.419H473.9a11.425,11.425,0,0,1,.944-2.963,8.923,8.923,0,0,1,3.387-3.777" transform="translate(-315.699 -24.878)" fill="#1d4664"/> <path id="Path_87" data-name="Path 87" d="M595.1,38.131a14.166,14.166,0,0,0-5.992-1.237,15.142,15.142,0,0,0-7.75,1.954,14.133,14.133,0,0,0-5.308,5.471,16.151,16.151,0,0,0-1.954,7.978,15.6,15.6,0,0,0,1.954,7.848,14.588,14.588,0,0,0,5.438,5.471,15.337,15.337,0,0,0,7.88,2.019,14.027,14.027,0,0,0,9.964-3.712,2.051,2.051,0,0,0,.651-1.758A2.67,2.67,0,0,0,598.94,60.4a2.182,2.182,0,0,0-1.661-.521,3.354,3.354,0,0,0-1.824.814,8.14,8.14,0,0,1-2.67,1.465,11.169,11.169,0,0,1-3.419.456,9.671,9.671,0,0,1-5.145-1.368,9.508,9.508,0,0,1-3.452-3.68,11.106,11.106,0,0,1-1.237-5.308,11.659,11.659,0,0,1,1.2-5.471,9.021,9.021,0,0,1,3.419-3.615,9.476,9.476,0,0,1,4.982-1.3,8.922,8.922,0,0,1,6.741,2.9,3.354,3.354,0,0,0,1.726.977,2.117,2.117,0,0,0,1.726-.358,2.9,2.9,0,0,0,1.2-1.661,1.987,1.987,0,0,0-.554-1.824,14.391,14.391,0,0,0-4.884-3.745" transform="translate(-386.778 -24.878)" fill="#1d4664"/> <path id="Path_88" data-name="Path 88" d="M687.467,42.387h-1.889a3.712,3.712,0,0,1-3-1.5,5.666,5.666,0,0,1-1.2-3.712V23.5H686.1a2.67,2.67,0,0,0,1.889-.651,2.182,2.182,0,0,0,.716-1.661,2.312,2.312,0,0,0-.716-1.758,2.67,2.67,0,0,0-1.889-.651h-4.722V10.768a2.768,2.768,0,1,0-5.536,0v7.978H673.3a2.67,2.67,0,0,0-1.889.651,2.312,2.312,0,0,0-.716,1.758,2.182,2.182,0,0,0,.716,1.661,2.67,2.67,0,0,0,1.889.651h2.54V37.144a11.657,11.657,0,0,0,1.27,5.471,9.9,9.9,0,0,0,3.484,3.842,9.085,9.085,0,0,0,4.982,1.4h1.009a3.517,3.517,0,0,0,2.345-.782,2.507,2.507,0,0,0,.912-1.986,2.9,2.9,0,0,0-.684-1.986,2.182,2.182,0,0,0-1.693-.782" transform="translate(-451.924 -5.395)" fill="#1d4664"/> <path id="Path_89" data-name="Path 89" d="M750.547,0a3.517,3.517,0,0,0-2.573,1.075A3.517,3.517,0,0,0,746.9,3.647a3.517,3.517,0,0,0,1.075,2.572,3.615,3.615,0,0,0,5.145,0,3.517,3.517,0,0,0,1.075-2.572,3.517,3.517,0,0,0-1.075-2.573A3.517,3.517,0,0,0,750.547,0" transform="translate(-503.314 0.001)" fill="#1d4664"/> <path id="Path_90" data-name="Path 90" d="M752.228,37.589a2.8,2.8,0,0,0-2.019.782,2.7,2.7,0,0,0-.814,2.051v24.65a2.866,2.866,0,0,0,4.885,2.019,2.8,2.8,0,0,0,.781-2.019V40.422a2.67,2.67,0,0,0-2.833-2.833" transform="translate(-504.995 -25.345)" fill="#1d4664"/> <path id="Path_91" data-name="Path 91" d="M818.21,38.424a14.132,14.132,0,0,0-6.838-1.628,13.514,13.514,0,0,0-6.578,1.6,12.667,12.667,0,0,0-2.833,2.084v-.586a2.866,2.866,0,0,0-4.852-2.051,2.7,2.7,0,0,0-.814,2.051V64.6a2.866,2.866,0,0,0,4.884,2.019,2.8,2.8,0,0,0,.782-2.019V48.974a6.154,6.154,0,0,1,1.107-3.647,7.879,7.879,0,0,1,3-2.507,9.281,9.281,0,0,1,4.2-.944,10.094,10.094,0,0,1,4.526.977,7.326,7.326,0,0,1,3.126,2.963,10.029,10.029,0,0,1,1.172,5.145V64.572a2.833,2.833,0,0,0,5.666,0V50.96A15.734,15.734,0,0,0,823,43.21a11.787,11.787,0,0,0-4.754-4.787" transform="translate(-536.623 -24.812)" fill="#1d4664"/> <path id="Path_92" data-name="Path 92" d="M934.551,44.332a14.262,14.262,0,0,0-5.406-5.406,16.835,16.835,0,0,0-15.793,0,14.263,14.263,0,0,0-5.406,5.438,15.983,15.983,0,0,0-1.954,8.011,16.77,16.77,0,0,0,1.823,7.945,13.481,13.481,0,0,0,12.342,7.392,11.853,11.853,0,0,0,6.773-1.954,13.219,13.219,0,0,0,4.168-4.526v2.735a12.691,12.691,0,0,1-1.335,6.089,9.151,9.151,0,0,1-3.582,3.712,9.769,9.769,0,0,1-4.885,1.3,12.113,12.113,0,0,1-5.145-1.042,10.225,10.225,0,0,1-3.777-2.931,2.833,2.833,0,0,0-1.758-1.107,2.67,2.67,0,0,0-2.084.456,2.474,2.474,0,0,0-1.074,1.6A2.344,2.344,0,0,0,907.979,74a15.5,15.5,0,0,0,5.829,4.559,17.681,17.681,0,0,0,7.359,1.563A15.11,15.11,0,0,0,929.178,78a14.783,14.783,0,0,0,5.406-5.666,16.38,16.38,0,0,0,1.954-7.945V52.343a16.1,16.1,0,0,0-1.954-8.011M926.41,61.363a10.42,10.42,0,0,1-10.192,0,9.508,9.508,0,0,1-3.484-3.647,11.005,11.005,0,0,1-1.27-5.373,11.169,11.169,0,0,1,1.27-5.406,9.443,9.443,0,0,1,3.484-3.68,10.42,10.42,0,0,1,10.192,0,9.248,9.248,0,0,1,3.452,3.68,11.364,11.364,0,0,1,1.237,5.406,11.2,11.2,0,0,1-1.237,5.373,9.313,9.313,0,0,1-3.452,3.647" transform="translate(-610.599 -24.924)" fill="#1d4664"/> <path id="Path_93" data-name="Path 93" d="M25.185,46.567H2.717a3.517,3.517,0,1,1,0-7H25.185a3.517,3.517,0,0,1,0,7" transform="translate(1.138 -26.671)" fill="#1d4664"/> <path id="Path_94" data-name="Path 94" d="M104.434,43.117a3.517,3.517,0,1,1-3.517-3.517,3.517,3.517,0,0,1,3.517,3.517" transform="translate(-65.313 -26.705)" fill="#fec006"/> <path id="Path_95" data-name="Path 95" d="M25.185,116.267H2.717a3.517,3.517,0,1,1,0-7H25.185a3.517,3.517,0,0,1,0,7" transform="translate(1.138 -73.674)" fill="#1d4664"/> <path id="Path_96" data-name="Path 96" d="M104.434,112.884a3.517,3.517,0,1,1-3.517-3.484,3.517,3.517,0,0,1,3.517,3.484" transform="translate(-65.313 -73.776)" fill="#9474cc"/> <path id="Path_97" data-name="Path 97" d="M10.046,81.467H2.817a3.517,3.517,0,1,1,0-7h7.229a3.517,3.517,0,1,1,0,7" transform="translate(1.071 -50.206)" fill="#73c0ca"/> <path id="Path_98" data-name="Path 98" d="M57.334,78.184A3.517,3.517,0,1,1,53.849,74.7a3.517,3.517,0,0,1,3.484,3.484" transform="translate(-33.55 -50.375)" fill="#73c0ca"/> </svg><span style="display:inline-block;vertical-align:middle;margin-left:8px">· Surrogacy, Egg Donation and Sperm Donation</span></div>
+  Profile #${esc(d.id)} · Prepared for intended parents · expecting.ai<br>
+  Please note that all the information in this profile was self-submitted by the surrogate applicant, which is why Expecting doesn't assume any responsibility or liability for any errors or omissions.
+</footer>
+
+</div></body></html>`;
+
+  // Show preview and go to step 4
+  goTo(4);
+  setTimeout(() => {
+    const frame = document.getElementById('previewFrame');
+    frame.srcdoc = generatedHTML;
+  }, 100);
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function ordinal(n) { const s=['th','st','nd','rd']; const v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
+
+function calcAge(dob) {
+  if (!dob) return '?';
+  // Try various date formats
+  let d;
+  const parts = dob.match(/(\d{1,2})[\/\-]([A-Za-z]+)[\/\-](\d{2,4})/);
+  if (parts) {
+    d = new Date(dob);
+  } else {
+    d = new Date(dob);
+  }
+  if (isNaN(d.getTime())) return '?';
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  if (now.getMonth() < d.getMonth() || (now.getMonth() === d.getMonth() && now.getDate() < d.getDate())) age--;
+  return age;
+}
+
+function formatDOB(dob) {
+  if (!dob) return '';
+  const d = new Date(dob);
+  if (isNaN(d.getTime())) return dob;
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const age = calcAge(dob);
+  return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} (age ${age})`;
+}
+
+function downloadProfile() {
+  const blob = new Blob([generatedHTML], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Surrogate_Profile_${parsedData.id || 'unknown'}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function printProfile() {
+  const w = window.open('', '_blank');
+  w.document.write(generatedHTML);
+  w.document.close();
+  setTimeout(() => { w.print(); }, 500);
+}
+</script>
+
+</body>
+</html>
