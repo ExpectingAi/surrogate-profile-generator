@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Surrogate Profile Generator | Expecting.Ai</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
 :root{--navy:#1D4664;--purple:#9474CC;--teal:#73C0CA;--yellow:#FEC006;--ink:#243342;--soft:#5B6B7B;--paper:#FFFFFF;--mist:#F4F7FA;--line:#E2E9F0;--red:#D64545;--green:#1E7F4F}
@@ -132,10 +134,10 @@ body{font-family:'Montserrat',system-ui,sans-serif;color:var(--ink);background:v
     <p class="sub">Drop the Zoho CRM CSV or XLSX export of the Surrogate Prospects Initial Screening Questionnaire.</p>
     <div class="dropzone" id="dataDropzone" onclick="document.getElementById('fileInput').click()">
       <div class="icon">📄</div>
-      <div class="main">Drop CSV or XLSX file here</div>
+      <div class="main">Drop CSV, XLSX or PDF file here</div>
       <div class="hint">or click to browse</div>
     </div>
-    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display:none">
+    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,.pdf" style="display:none">
     <div id="fileTag" style="display:none"></div>
     <div id="parseStatus" class="status"></div>
     <div class="actions">
@@ -364,6 +366,10 @@ const PREG_COL_START = 71;
 
 function parseFile(file) {
   const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'pdf') {
+    parsePDF(file);
+    return;
+  }
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
@@ -382,6 +388,80 @@ function parseFile(file) {
   };
   if (ext === 'csv') reader.readAsText(file);
   else reader.readAsBinaryString(file);
+}
+
+async function parsePDF(file) {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
+    let fullText = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const lines = [];
+      let lastY = null;
+      let currentLine = '';
+      content.items.forEach(item => {
+        const y = Math.round(item.transform[5]);
+        if (lastY !== null && Math.abs(y - lastY) > 3) {
+          lines.push(currentLine.trim());
+          currentLine = '';
+        }
+        currentLine += item.str + '\t';
+        lastY = y;
+      });
+      if (currentLine.trim()) lines.push(currentLine.trim());
+      fullText += lines.join('\n') + '\n';
+    }
+    processPDFText(fullText, file.name);
+  } catch(err) {
+    showStatus('err', 'Failed to parse PDF: ' + err.message);
+  }
+}
+
+function processPDFText(text, fileName) {
+  parsedData = {};
+  pregnancies = [];
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+  
+  // Build a lookup: for each known column name, find its value in the next line or same line after the label
+  const allText = lines.join(' ||| ');
+  
+  for (const [key, colName] of Object.entries(MAIN_COLS)) {
+    // Try to find the column name in the text and grab what follows
+    const escaped = colName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Pattern 1: label followed by tab then value on same line
+    const tabPattern = new RegExp(escaped + '\\t+([^\\t|]+)', 'i');
+    // Pattern 2: label on one line, value on next (via ||| separator)  
+    const nextLinePattern = new RegExp(escaped + '[^|]*\\|\\|\\|\\s*([^|]+)', 'i');
+    
+    let match = allText.match(tabPattern);
+    if (!match) match = allText.match(nextLinePattern);
+    
+    if (match && match[1]) {
+      let val = match[1].trim();
+      // Clean up: remove trailing column names that might have been captured
+      if (val.length > 200) val = val.substring(0, 200);
+      parsedData[key] = val;
+    } else {
+      parsedData[key] = '';
+    }
+  }
+  
+  cleanData();
+  
+  if (!parsedData.id) {
+    // Try to find Expecting ID pattern
+    const idMatch = text.match(/PS\d{9,}/);
+    if (idMatch) parsedData.id = idMatch[0];
+  }
+  
+  showStatus('ok', `Parsed <b>${parsedData.id || 'Unknown ID'}</b> from PDF: ${fileName}.<br><small>⚠️ PDF parsing is approximate. Please review all fields carefully in Step 3. For best results, use CSV or XLSX export.</small>`);
+  document.getElementById('nextToPhotos').disabled = false;
+  
+  const ft = document.getElementById('fileTag');
+  ft.style.display = 'inline-flex';
+  ft.innerHTML = `<span class="file-tag">📄 ${fileName} <span class="x" onclick="clearFile()">✕</span></span>`;
 }
 
 function csvToRows(text) {
@@ -844,8 +924,8 @@ function collectFromForm() {
 // PROFILE HTML GENERATOR
 // ============================================================
 function yn(v) {
-  if (!v) return 'N/A';
-  const l = v.toLowerCase().trim();
+  if (!v || !String(v).trim()) return '-';
+  const l = String(v).toLowerCase().trim();
   if (['yes','true','1','agreed','y'].some(x => l.includes(x))) return 'Yes';
   if (['no','false','0','none','n/a','never'].some(x => l === x || l.startsWith(x))) return 'No';
   return v;
@@ -1224,7 +1304,7 @@ ${allPhotos.length ? `
 // ============================================================
 // HELPERS
 // ============================================================
-function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function esc(s) { const v = String(s||'').trim(); if (!v) return '-'; return v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function ordinal(n) { const s=['th','st','nd','rd']; const v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
 
@@ -1246,7 +1326,7 @@ function calcAge(dob) {
 }
 
 function formatDOB(dob) {
-  if (!dob) return '';
+  if (!dob) return '-';
   const d = new Date(dob);
   if (isNaN(d.getTime())) return dob;
   const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
